@@ -1,0 +1,307 @@
+# Prometheus Alerting Rules for Database Batch Performance Analyzer
+# File: Docker/prometheus/alerts-prod.yml
+
+groups:
+  - name: application.rules
+    rules:
+      # Application Health Alerts
+      - alert: ApplicationDown
+        expr: up{job="batch-performance-analyzer"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: application
+        annotations:
+          summary: "Application is down"
+          description: "Batch Performance Analyzer application has been down for more than 1 minute"
+          runbook_url: "https://docs.company.com/runbooks/application-down"
+
+      - alert: ApplicationHealthDegraded
+        expr: application_health_status < 1
+        for: 2m
+        labels:
+          severity: warning
+          component: application
+        annotations:
+          summary: "Application health is degraded"
+          description: "Application health status is {{ $value }} (expected: 1.0)"
+
+      # Database Alerts
+      - alert: DatabaseConnectionFailed
+        expr: database_health_status == 0
+        for: 30s
+        labels:
+          severity: critical
+          component: database
+        annotations:
+          summary: "Database connection failed"
+          description: "Cannot connect to PostgreSQL database"
+          runbook_url: "https://docs.company.com/runbooks/database-connection"
+
+      - alert: DatabaseSlowQueries
+        expr: database_connection_test_time > 1000
+        for: 2m
+        labels:
+          severity: warning
+          component: database
+        annotations:
+          summary: "Database queries are slow"
+          description: "Database connection test time is {{ $value }}ms (threshold: 1000ms)"
+
+      - alert: DatabaseHighConnections
+        expr: database_connections_active > 40
+        for: 5m
+        labels:
+          severity: warning
+          component: database
+        annotations:
+          summary: "High number of database connections"
+          description: "Active database connections: {{ $value }} (threshold: 40)"
+
+      # Memory and Resource Alerts
+      - alert: HighMemoryUsage
+        expr: jvm_memory_heap_usage_percent > 85
+        for: 3m
+        labels:
+          severity: warning
+          component: jvm
+        annotations:
+          summary: "High JVM memory usage"
+          description: "JVM heap usage is {{ $value }}% (threshold: 85%)"
+
+      - alert: CriticalMemoryUsage
+        expr: jvm_memory_heap_usage_percent > 95
+        for: 1m
+        labels:
+          severity: critical
+          component: jvm
+        annotations:
+          summary: "Critical JVM memory usage"
+          description: "JVM heap usage is {{ $value }}% (threshold: 95%)"
+          runbook_url: "https://docs.company.com/runbooks/memory-issues"
+
+      - alert: HighGCOverhead
+        expr: jvm_gc_overhead_percent > 10
+        for: 5m
+        labels:
+          severity: warning
+          component: jvm
+        annotations:
+          summary: "High garbage collection overhead"
+          description: "GC overhead is {{ $value }}% (threshold: 10%)"
+
+      - alert: HighDiskUsage
+        expr: system_disk_usage_percent > 85
+        for: 5m
+        labels:
+          severity: warning
+          component: system
+        annotations:
+          summary: "High disk usage"
+          description: "Disk usage is {{ $value }}% (threshold: 85%)"
+
+      - alert: CriticalDiskUsage
+        expr: system_disk_usage_percent > 95
+        for: 1m
+        labels:
+          severity: critical
+          component: system
+        annotations:
+          summary: "Critical disk usage"
+          description: "Disk usage is {{ $value }}% (threshold: 95%)"
+          runbook_url: "https://docs.company.com/runbooks/disk-cleanup"
+
+      # Performance Alerts
+      - alert: HighOperationFailureRate
+        expr: performance_operations_error_rate > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          component: performance
+        annotations:
+          summary: "High operation failure rate"
+          description: "Operation failure rate is {{ $value }} (threshold: 0.1 or 10%)"
+
+      - alert: CriticalOperationFailureRate
+        expr: performance_operations_error_rate > 0.25
+        for: 2m
+        labels:
+          severity: critical
+          component: performance
+        annotations:
+          summary: "Critical operation failure rate"
+          description: "Operation failure rate is {{ $value }} (threshold: 0.25 or 25%)"
+
+      - alert: SlowOperationDuration
+        expr: histogram_quantile(0.95, performance_operation_duration_seconds_bucket) > 300
+        for: 5m
+        labels:
+          severity: warning
+          component: performance
+        annotations:
+          summary: "Slow performance operations"
+          description: "95th percentile operation duration is {{ $value }}s (threshold: 300s)"
+
+      # HTTP Request Alerts
+      - alert: HighHttpErrorRate
+        expr: rate(http_server_requests_seconds_count{status=~"5.."}[5m]) / rate(http_server_requests_seconds_count[5m]) > 0.05
+        for: 3m
+        labels:
+          severity: warning
+          component: http
+        annotations:
+          summary: "High HTTP error rate"
+          description: "HTTP 5xx error rate is {{ $value }} (threshold: 0.05 or 5%)"
+
+      - alert: HighHttpLatency
+        expr: histogram_quantile(0.95, http_server_requests_seconds_bucket) > 2
+        for: 5m
+        labels:
+          severity: warning
+          component: http
+        annotations:
+          summary: "High HTTP request latency"
+          description: "95th percentile HTTP latency is {{ $value }}s (threshold: 2s)"
+
+      # Rate Limiting Alerts
+      - alert: RateLimitExceeded
+        expr: increase(http_server_requests_seconds_count{status="429"}[5m]) > 10
+        for: 1m
+        labels:
+          severity: warning
+          component: security
+        annotations:
+          summary: "Rate limit frequently exceeded"
+          description: "Rate limit exceeded {{ $value }} times in 5 minutes"
+
+  - name: infrastructure.rules
+    rules:
+      # PostgreSQL Database Alerts
+      - alert: PostgresDown
+        expr: up{job="postgres"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: database
+        annotations:
+          summary: "PostgreSQL is down"
+          description: "PostgreSQL database has been down for more than 1 minute"
+
+      - alert: PostgresHighConnections
+        expr: pg_stat_activity_count > 80
+        for: 5m
+        labels:
+          severity: warning
+          component: database
+        annotations:
+          summary: "PostgreSQL high connections"
+          description: "PostgreSQL has {{ $value }} active connections (threshold: 80)"
+
+      # Redis Alerts (if configured)
+      - alert: RedisDown
+        expr: up{job="redis"} == 0
+        for: 1m
+        labels:
+          severity: warning
+          component: cache
+        annotations:
+          summary: "Redis is down"
+          description: "Redis cache has been down for more than 1 minute"
+
+      # Prometheus Alerts
+      - alert: PrometheusDown
+        expr: up{job="prometheus"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          component: monitoring
+        annotations:
+          summary: "Prometheus is down"
+          description: "Prometheus monitoring system is down"
+
+      - alert: PrometheusConfigReloadFailed
+        expr: prometheus_config_last_reload_successful == 0
+        for: 5m
+        labels:
+          severity: warning
+          component: monitoring
+        annotations:
+          summary: "Prometheus config reload failed"
+          description: "Prometheus configuration reload has failed"
+
+      # Grafana Alerts
+      - alert: GrafanaDown
+        expr: up{job="grafana"} == 0
+        for: 2m
+        labels:
+          severity: warning
+          component: monitoring
+        annotations:
+          summary: "Grafana is down"
+          description: "Grafana dashboard system is down"
+
+  - name: business.rules
+    rules:
+      # Business Logic Alerts
+      - alert: NoRecentOperations
+        expr: time() - application_metrics_last_collection > 300
+        for: 5m
+        labels:
+          severity: warning
+          component: business
+        annotations:
+          summary: "No recent performance operations"
+          description: "No performance operations have been executed in the last 5 minutes"
+
+      - alert: DatabaseRecordCountAnomaly
+        expr: abs(database_records_total - database_records_total offset 1h) > 100000
+        for: 10m
+        labels:
+          severity: warning
+          component: business
+        annotations:
+          summary: "Unusual change in database record count"
+          description: "Database record count changed by {{ $value }} in the last hour"
+
+      - alert: HighActiveOperations
+        expr: performance_operations_active > 5
+        for: 10m
+        labels:
+          severity: warning
+          component: business
+        annotations:
+          summary: "High number of active operations"
+          description: "{{ $value }} performance operations are currently active (threshold: 5)"
+
+  - name: security.rules
+    rules:
+      # Security Alerts
+      - alert: UnauthorizedAccessAttempts
+        expr: increase(http_server_requests_seconds_count{status="401"}[5m]) > 20
+        for: 2m
+        labels:
+          severity: warning
+          component: security
+        annotations:
+          summary: "High number of unauthorized access attempts"
+          description: "{{ $value }} unauthorized access attempts in 5 minutes"
+
+      - alert: SuspiciousActivity
+        expr: increase(http_server_requests_seconds_count{status="403"}[5m]) > 10
+        for: 2m
+        labels:
+          severity: warning
+          component: security
+        annotations:
+          summary: "Suspicious access activity detected"
+          description: "{{ $value }} forbidden access attempts in 5 minutes"
+
+      - alert: SecurityHealthCheckFailed
+        expr: up{job="batch-performance-analyzer"} == 1 and on() (application_health_status < 0.5)
+        for: 1m
+        labels:
+          severity: critical
+          component: security
+        annotations:
+          summary: "Security health check failed"
+          description: "Application security health check is failing"

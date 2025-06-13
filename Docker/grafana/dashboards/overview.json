@@ -1,0 +1,406 @@
+{
+    "dashboard": {
+        "id": null,
+        "title": "Database Batch Performance Analyzer - Overview",
+        "tags": [
+            "performance",
+            "database",
+            "monitoring"
+        ],
+        "timezone": "browser",
+        "refresh": "30s",
+        "time": {
+            "from": "now-1h",
+            "to": "now"
+        },
+        "panels": [
+            {
+                "id": 1,
+                "title": "Application Status",
+                "type": "stat",
+                "targets": [
+                    {
+                        "expr": "up{job=\"batch-performance-analyzer\"}",
+                        "legendFormat": "Application Status"
+                    }
+                ],
+                "fieldConfig": {
+                    "defaults": {
+                        "color": {
+                            "mode": "thresholds"
+                        },
+                        "thresholds": {
+                            "steps": [
+                                {
+                                    "color": "red",
+                                    "value": 0
+                                },
+                                {
+                                    "color": "green",
+                                    "value": 1
+                                }
+                            ]
+                        },
+                        "mappings": [
+                            {
+                                "options": {
+                                    "0": {
+                                        "text": "DOWN"
+                                    }
+                                },
+                                "type": "value"
+                            },
+                            {
+                                "options": {
+                                    "1": {
+                                        "text": "UP"
+                                    }
+                                },
+                                "type": "value"
+                            }
+                        ]
+                    }
+                },
+                "gridPos": {
+                    "h": 4,
+                    "w": 6,
+                    "x": 0,
+                    "y": 0
+                }
+            },
+            {
+                "id": 2,
+                "title": "Database Records",
+                "type": "stat",
+                "targets": [
+                    {
+                        "expr": "database_records_total",
+                        "legendFormat": "Total Records"
+                    }
+                ],
+                "fieldConfig": {
+                    "defaults": {
+                        "unit": "short",
+                        "color": {
+                            "mode": "palette-classic"
+                        }
+                    }
+                },
+                "gridPos": {
+                    "h": 4,
+                    "w": 6,
+                    "x": 6,
+                    "y": 0
+                }
+            },
+            {
+                "id": 3,
+                "title": "Active Operations",
+                "type": "stat",
+                "targets": [
+                    {
+                        "expr": "performance_operations_active",
+                        "legendFormat": "Active Operations"
+                    }
+                ],
+                "fieldConfig": {
+                    "defaults": {
+                        "unit": "short",
+                        "color": {
+                            "mode": "thresholds"
+                        },
+                        "thresholds": {
+                            "steps": [
+                                {
+                                    "color": "green",
+                                    "value": 0
+                                },
+                                {
+                                    "color": "yellow",
+                                    "value": 3
+                                },
+                                {
+                                    "color": "red",
+                                    "value": 5
+                                }
+                            ]
+                        }
+                    }
+                },
+                "gridPos": {
+                    "h": 4,
+                    "w": 6,
+                    "x": 12,
+                    "y": 0
+                }
+            },
+            {
+                "id": 4,
+                "title": "Memory Usage",
+                "type": "stat",
+                "targets": [
+                    {
+                        "expr": "jvm_memory_heap_usage_percent",
+                        "legendFormat": "Heap Usage %"
+                    }
+                ],
+                "fieldConfig": {
+                    "defaults": {
+                        "unit": "percent",
+                        "color": {
+                            "mode": "thresholds"
+                        },
+                        "thresholds": {
+                            "steps": [
+                                {
+                                    "color": "green",
+                                    "value": 0
+                                },
+                                {
+                                    "color": "yellow",
+                                    "value": 70
+                                },
+                                {
+                                    "color": "red",
+                                    "value": 85
+                                }
+                            ]
+                        }
+                    }
+                },
+                "gridPos": {
+                    "h": 4,
+                    "w": 6,
+                    "x": 18,
+                    "y": 0
+                }
+            },
+            {
+                "id": 5,
+                "title": "Request Rate",
+                "type": "graph",
+                "targets": [
+                    {
+                        "expr": "rate(http_server_requests_seconds_count[5m])",
+                        "legendFormat": "{{method}} {{uri}}"
+                    }
+                ],
+                "yAxes": [
+                    {
+                        "label": "Requests/sec",
+                        "min": 0
+                    },
+                    {
+                        "show": false
+                    }
+                ],
+                "gridPos": {
+                    "h": 8,
+                    "w": 12,
+                    "x": 0,
+                    "y": 4
+                }
+            },
+            {
+                "id": 6,
+                "title": "Response Times",
+                "type": "graph",
+                "targets": [
+                    {
+                        "expr": "histogram_quantile(0.50, http_server_requests_seconds_bucket)",
+                        "legendFormat": "50th percentile"
+                    },
+                    {
+                        "expr": "histogram_quantile(0.95, http_server_requests_seconds_bucket)",
+                        "legendFormat": "95th percentile"
+                    },
+                    {
+                        "expr": "histogram_quantile(0.99, http_server_requests_seconds_bucket)",
+                        "legendFormat": "99th percentile"
+                    }
+                ],
+                "yAxes": [
+                    {
+                        "label": "Seconds",
+                        "min": 0
+                    },
+                    {
+                        "show": false
+                    }
+                ],
+                "gridPos": {
+                    "h": 8,
+                    "w": 12,
+                    "x": 12,
+                    "y": 4
+                }
+            },
+            {
+                "id": 7,
+                "title": "Database Performance",
+                "type": "graph",
+                "targets": [
+                    {
+                        "expr": "database_connection_test_time",
+                        "legendFormat": "Connection Test Time"
+                    },
+                    {
+                        "expr": "database_connections_active",
+                        "legendFormat": "Active Connections"
+                    }
+                ],
+                "yAxes": [
+                    {
+                        "label": "Milliseconds / Count",
+                        "min": 0
+                    },
+                    {
+                        "show": false
+                    }
+                ],
+                "gridPos": {
+                    "h": 8,
+                    "w": 12,
+                    "x": 0,
+                    "y": 12
+                }
+            },
+            {
+                "id": 8,
+                "title": "Performance Operations",
+                "type": "graph",
+                "targets": [
+                    {
+                        "expr": "rate(performance_operations_completed_total[5m])",
+                        "legendFormat": "Completed/sec"
+                    },
+                    {
+                        "expr": "rate(performance_operations_failed_total[5m])",
+                        "legendFormat": "Failed/sec"
+                    }
+                ],
+                "yAxes": [
+                    {
+                        "label": "Operations/sec",
+                        "min": 0
+                    },
+                    {
+                        "show": false
+                    }
+                ],
+                "gridPos": {
+                    "h": 8,
+                    "w": 12,
+                    "x": 12,
+                    "y": 12
+                }
+            },
+            {
+                "id": 9,
+                "title": "JVM Memory",
+                "type": "graph",
+                "targets": [
+                    {
+                        "expr": "jvm_memory_heap_usage_percent",
+                        "legendFormat": "Heap Usage %"
+                    },
+                    {
+                        "expr": "jvm_memory_non_heap_usage_percent",
+                        "legendFormat": "Non-Heap Usage %"
+                    }
+                ],
+                "yAxes": [
+                    {
+                        "label": "Percent",
+                        "min": 0,
+                        "max": 100
+                    },
+                    {
+                        "show": false
+                    }
+                ],
+                "gridPos": {
+                    "h": 8,
+                    "w": 12,
+                    "x": 0,
+                    "y": 20
+                }
+            },
+            {
+                "id": 10,
+                "title": "System Resources",
+                "type": "graph",
+                "targets": [
+                    {
+                        "expr": "system_cpu_load_average",
+                        "legendFormat": "CPU Load"
+                    },
+                    {
+                        "expr": "system_disk_usage_percent",
+                        "legendFormat": "Disk Usage %"
+                    }
+                ],
+                "yAxes": [
+                    {
+                        "label": "Load / Percent",
+                        "min": 0
+                    },
+                    {
+                        "show": false
+                    }
+                ],
+                "gridPos": {
+                    "h": 8,
+                    "w": 12,
+                    "x": 12,
+                    "y": 20
+                }
+            },
+            {
+                "id": 11,
+                "title": "Error Rates",
+                "type": "graph",
+                "targets": [
+                    {
+                        "expr": "rate(http_server_requests_seconds_count{status=~\"4..\"}[5m])",
+                        "legendFormat": "4xx Errors/sec"
+                    },
+                    {
+                        "expr": "rate(http_server_requests_seconds_count{status=~\"5..\"}[5m])",
+                        "legendFormat": "5xx Errors/sec"
+                    },
+                    {
+                        "expr": "performance_operations_error_rate",
+                        "legendFormat": "Operation Error Rate"
+                    }
+                ],
+                "yAxes": [
+                    {
+                        "label": "Rate",
+                        "min": 0
+                    },
+                    {
+                        "show": false
+                    }
+                ],
+                "gridPos": {
+                    "h": 8,
+                    "w": 24,
+                    "x": 0,
+                    "y": 28
+                }
+            }
+        ],
+        "annotations": {
+            "list": [
+                {
+                    "name": "Deployments",
+                    "datasource": "Prometheus",
+                    "expr": "changes(up{job=\"batch-performance-analyzer\"}[1m]) > 0",
+                    "iconColor": "green",
+                    "enable": true
+                }
+            ]
+        }
+    }
+}

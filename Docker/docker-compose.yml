@@ -1,5 +1,77 @@
+version: '3.8'
 
 services:
+  # Spring Boot Application
+  app:
+    build:
+      context: ..
+      dockerfile: Docker/Dockerfile
+    container_name: performance-analyzer-app
+    environment:
+      # Database Configuration
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=performance_db
+      - DB_USERNAME=postgres
+      - DB_PASSWORD=${DB_PASSWORD:-securepassword123!}
+      - DB_SSL_ENABLED=false
+      - DB_SSL_MODE=prefer
+      
+      # Security Configuration
+      - SECURITY_ENABLED=true
+      - ADMIN_USERNAME=admin
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin123!}
+      - VIEWER_USERNAME=viewer
+      - VIEWER_PASSWORD=${VIEWER_PASSWORD:-viewer123!}
+      
+      # Rate Limiting
+      - RATE_LIMIT_ENABLED=true
+      - RATE_LIMIT_RPM=60
+      - RATE_LIMIT_BURST=10
+      - RATE_LIMIT_PERF_OPS=20
+      
+      # Application Settings
+      - SERVER_PORT=8080
+      - SPRING_PROFILES_ACTIVE=docker
+      - DDL_AUTO=create-drop
+      - SHOW_SQL=false
+      - PROMETHEUS_ENABLED=true
+      
+      # Logging
+      - LOG_LEVEL_APP=INFO
+      - LOG_LEVEL_SQL=WARN
+      - LOG_LEVEL_SECURITY=WARN
+      
+      # JVM Settings
+      - JAVA_OPTS=-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:+UseG1GC
+      
+    ports:
+      - "8080:8080"
+    volumes:
+      - app_logs:/app/logs
+    networks:
+      - performance-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1g
+          cpus: '1.0'
+        reservations:
+          memory: 512m
+          cpus: '0.5'
+
   # PostgreSQL Database
   postgres:
     image: postgres:16-alpine
@@ -7,13 +79,14 @@ services:
     environment:
       POSTGRES_DB: performance_db
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-securepassword123!}
       POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
     ports:
       - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+      - ./init-db.sql:/docker-entrypoint-initdb.d/01-init-db.sql
+      - ./init-performance-tables.sql:/docker-entrypoint-initdb.d/02-init-performance-tables.sql
     networks:
       - performance-network
     healthcheck:
@@ -21,6 +94,12 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+          cpus: '0.5'
 
   # Prometheus for Metrics Collection
   prometheus:
@@ -30,6 +109,7 @@ services:
       - "9090:9090"
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./prometheus/alerts.yml:/etc/prometheus/alerts.yml
       - prometheus_data:/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
@@ -38,13 +118,17 @@ services:
       - '--web.console.templates=/etc/prometheus/consoles'
       - '--storage.tsdb.retention.time=200h'
       - '--web.enable-lifecycle'
+      - '--alertmanager.url=http://alertmanager:9093'
     networks:
       - performance-network
+    depends_on:
+      - app
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9090/"]
-      interval: 10s
+      interval: 30s
       timeout: 5s
       retries: 3
+    restart: unless-stopped
 
   # Grafana for Visualization
   grafana:
@@ -53,9 +137,12 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin123!}
       - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SECURITY_ALLOW_EMBEDDING=true
+      - GF_AUTH_ANONYMOUS_ENABLED=false
+      - GF_INSTALL_PLUGINS=grafana-piechart-panel
     volumes:
       - grafana_data:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning
@@ -66,11 +153,12 @@ services:
       - prometheus
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3000/api/health || exit 1"]
-      interval: 10s
+      interval: 30s
       timeout: 5s
       retries: 5
+    restart: unless-stopped
 
-  # Redis for Caching (Optional - for advanced metrics)
+  # Redis for Caching
   redis:
     image: redis:7-alpine
     container_name: performance-redis
@@ -78,6 +166,7 @@ services:
       - "6379:6379"
     volumes:
       - redis_data:/data
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
     networks:
       - performance-network
     healthcheck:
@@ -85,13 +174,43 @@ services:
       interval: 10s
       timeout: 3s
       retries: 3
+    restart: unless-stopped
+
+  # AlertManager (Optional - for production alerting)
+  alertmanager:
+    image: prom/alertmanager:v0.26.0
+    container_name: performance-alertmanager
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./prometheus/alertmanager.yml:/etc/alertmanager/alertmanager.yml
+      - alertmanager_data:/alertmanager
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+      - '--storage.path=/alertmanager'
+      - '--web.external-url=http://localhost:9093'
+    networks:
+      - performance-network
+    restart: unless-stopped
 
 volumes:
   postgres_data:
+    driver: local
   prometheus_data:
+    driver: local
   grafana_data:
+    driver: local
   redis_data:
+    driver: local
+  alertmanager_data:
+    driver: local
+  app_logs:
+    driver: local
 
 networks:
   performance-network:
     driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.20.0.0/16

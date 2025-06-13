@@ -1,0 +1,226 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Production Logback Configuration -->
+<!-- File: Docker/config/logback-prod.xml -->
+
+<configuration>
+    
+    <!-- Property definitions -->
+    <property name="LOG_DIR" value="${LOG_DIR:-/app/logs}" />
+    <property name="APP_NAME" value="${spring.application.name:-batch-performance-analyzer}" />
+    <property name="LOG_LEVEL_ROOT" value="${LOG_LEVEL_ROOT:-WARN}" />
+    <property name="LOG_LEVEL_APP" value="${LOG_LEVEL_APP:-INFO}" />
+    
+    <!-- Console appender for container logs -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%X{traceId:-},%X{spanId:-}] %logger{50} - %msg%n</pattern>
+        </encoder>
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>INFO</level>
+        </filter>
+    </appender>
+    
+    <!-- File appender for application logs -->
+    <appender name="APPLICATION_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_DIR}/application.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_DIR}/application.%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
+            <maxFileSize>100MB</maxFileSize>
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>1GB</totalSizeCap>
+        </rollingPolicy>
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%X{traceId:-},%X{spanId:-}] %logger{50} - %msg%n</pattern>
+        </encoder>
+    </appender>
+    
+    <!-- Error file appender -->
+    <appender name="ERROR_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_DIR}/error.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_DIR}/error.%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
+            <maxFileSize>50MB</maxFileSize>
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>500MB</totalSizeCap>
+        </rollingPolicy>
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%X{traceId:-},%X{spanId:-}] %logger{50} - %msg%n</pattern>
+        </encoder>
+        <filter class="ch.qos.logback.classic.filter.LevelFilter">
+            <level>ERROR</level>
+            <onMatch>ACCEPT</onMatch>
+            <onMismatch>DENY</onMismatch>
+        </filter>
+    </appender>
+    
+    <!-- Performance metrics appender -->
+    <appender name="PERFORMANCE_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_DIR}/performance.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_DIR}/performance.%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
+            <maxFileSize>100MB</maxFileSize>
+            <maxHistory>7</maxHistory>
+            <totalSizeCap>500MB</totalSizeCap>
+        </rollingPolicy>
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%X{traceId:-},%X{spanId:-}] %logger{50} - %msg%n</pattern>
+        </encoder>
+    </appender>
+    
+    <!-- Security audit appender -->
+    <appender name="SECURITY_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_DIR}/security.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_DIR}/security.%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
+            <maxFileSize>50MB</maxFileSize>
+            <maxHistory>90</maxHistory>
+            <totalSizeCap>1GB</totalSizeCap>
+        </rollingPolicy>
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%X{traceId:-},%X{spanId:-}] %logger{50} - %msg%n</pattern>
+        </encoder>
+    </appender>
+    
+    <!-- Database access appender -->
+    <appender name="DATABASE_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_DIR}/database.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_DIR}/database.%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
+            <maxFileSize>100MB</maxFileSize>
+            <maxHistory>14</maxHistory>
+            <totalSizeCap>1GB</totalSizeCap>
+        </rollingPolicy>
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%X{traceId:-},%X{spanId:-}] %logger{50} - %msg%n</pattern>
+        </encoder>
+    </appender>
+    
+    <!-- JSON appender for log aggregation -->
+    <appender name="JSON_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_DIR}/application.json</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_DIR}/application.%d{yyyy-MM-dd}.%i.json.gz</fileNamePattern>
+            <maxFileSize>100MB</maxFileSize>
+            <maxHistory>14</maxHistory>
+            <totalSizeCap>500MB</totalSizeCap>
+        </rollingPolicy>
+        <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
+            <providers>
+                <timestamp>
+                    <timeZone>UTC</timeZone>
+                </timestamp>
+                <logLevel/>
+                <loggerName/>
+                <message/>
+                <mdc/>
+                <stackTrace/>
+                <pattern>
+                    <pattern>
+                        {
+                        "application": "${APP_NAME}",
+                        "environment": "${ENVIRONMENT:-production}",
+                        "version": "${APP_VERSION:-2.0.0}",
+                        "host": "${HOSTNAME:-unknown}"
+                        }
+                    </pattern>
+                </pattern>
+            </providers>
+        </encoder>
+    </appender>
+    
+    <!-- Async wrapper for performance -->
+    <appender name="ASYNC_CONSOLE" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="CONSOLE"/>
+        <queueSize>512</queueSize>
+        <discardingThreshold>0</discardingThreshold>
+        <includeCallerData>false</includeCallerData>
+    </appender>
+    
+    <appender name="ASYNC_APPLICATION_FILE" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="APPLICATION_FILE"/>
+        <queueSize>512</queueSize>
+        <discardingThreshold>0</discardingThreshold>
+        <includeCallerData>false</includeCallerData>
+    </appender>
+    
+    <appender name="ASYNC_ERROR_FILE" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="ERROR_FILE"/>
+        <queueSize>256</queueSize>
+        <discardingThreshold>0</discardingThreshold>
+        <includeCallerData>true</includeCallerData>
+    </appender>
+    
+    <!-- Logger configurations -->
+    
+    <!-- Application loggers -->
+    <logger name="com.vivek" level="${LOG_LEVEL_APP}" additivity="false">
+        <appender-ref ref="ASYNC_CONSOLE"/>
+        <appender-ref ref="ASYNC_APPLICATION_FILE"/>
+        <appender-ref ref="ASYNC_ERROR_FILE"/>
+        <appender-ref ref="JSON_FILE"/>
+    </logger>
+    
+    <!-- Performance test logger -->
+    <logger name="com.vivek.service.PerformanceTestService" level="INFO" additivity="false">
+        <appender-ref ref="ASYNC_CONSOLE"/>
+        <appender-ref ref="PERFORMANCE_FILE"/>
+        <appender-ref ref="JSON_FILE"/>
+    </logger>
+    
+    <!-- Security logger -->
+    <logger name="org.springframework.security" level="WARN" additivity="false">
+        <appender-ref ref="SECURITY_FILE"/>
+        <appender-ref ref="JSON_FILE"/>
+    </logger>
+    
+    <!-- Database loggers -->
+    <logger name="org.hibernate" level="WARN" additivity="false">
+        <appender-ref ref="DATABASE_FILE"/>
+    </logger>
+    
+    <logger name="org.hibernate.SQL" level="WARN" additivity="false">
+        <appender-ref ref="DATABASE_FILE"/>
+    </logger>
+    
+    <logger name="org.hibernate.orm.jdbc.bind" level="WARN" additivity="false">
+        <appender-ref ref="DATABASE_FILE"/>
+    </logger>
+    
+    <!-- Framework loggers -->
+    <logger name="org.springframework" level="WARN"/>
+    <logger name="org.springframework.web" level="WARN"/>
+    <logger name="org.springframework.boot" level="WARN"/>
+    <logger name="org.apache.tomcat" level="WARN"/>
+    <logger name="org.apache.catalina" level="WARN"/>
+    <logger name="io.micrometer" level="WARN"/>
+    
+    <!-- Disable noisy loggers -->
+    <logger name="org.springframework.jmx" level="OFF"/>
+    <logger name="org.springframework.boot.actuate.endpoint.jmx" level="OFF"/>
+    <logger name="com.zaxxer.hikari" level="WARN"/>
+    
+    <!-- Metrics and monitoring -->
+    <logger name="io.micrometer.core.instrument" level="WARN"/>
+    <logger name="io.prometheus" level="WARN"/>
+    
+    <!-- Root logger -->
+    <root level="${LOG_LEVEL_ROOT}">
+        <appender-ref ref="ASYNC_CONSOLE"/>
+        <appender-ref ref="ASYNC_APPLICATION_FILE"/>
+        <appender-ref ref="ASYNC_ERROR_FILE"/>
+    </root>
+    
+    <!-- Conditional loggers based on environment -->
+    <if condition='property("ENVIRONMENT").equals("development")'>
+        <then>
+            <logger name="org.hibernate.SQL" level="DEBUG" additivity="false">
+                <appender-ref ref="CONSOLE"/>
+                <appender-ref ref="DATABASE_FILE"/>
+            </logger>
+        </then>
+    </if>
+    
+    <!-- JMX Configuration for log level management -->
+    <jmxConfigurator/>
+    
+</configuration>

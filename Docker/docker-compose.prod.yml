@@ -1,0 +1,468 @@
+# Production Docker Compose Configuration
+# File: Docker/docker-compose.prod.yml
+
+version: '3.8'
+
+services:
+  # Spring Boot Application - Production
+  app:
+    build:
+      context: ..
+      dockerfile: Docker/Dockerfile
+      target: runtime-stage
+      args:
+        - BUILD_ENV=production
+    image: batch-performance-analyzer:prod
+    container_name: performance-analyzer-prod
+    restart: unless-stopped
+    
+    environment:
+      # Database Configuration
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=${DB_NAME:-performance_db}
+      - DB_USERNAME=${DB_USERNAME:-postgres}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_SSL_ENABLED=${DB_SSL_ENABLED:-true}
+      - DB_SSL_MODE=${DB_SSL_MODE:-require}
+      
+      # Security Configuration
+      - SECURITY_ENABLED=true
+      - ADMIN_USERNAME=${ADMIN_USERNAME:-admin}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+      - VIEWER_USERNAME=${VIEWER_USERNAME:-viewer}
+      - VIEWER_PASSWORD=${VIEWER_PASSWORD}
+      - REQUIRE_SSL=${REQUIRE_SSL:-false}
+      
+      # Rate Limiting (Production settings)
+      - RATE_LIMIT_ENABLED=true
+      - RATE_LIMIT_RPM=${RATE_LIMIT_RPM:-30}
+      - RATE_LIMIT_BURST=${RATE_LIMIT_BURST:-5}
+      - RATE_LIMIT_PERF_OPS=${RATE_LIMIT_PERF_OPS:-10}
+      
+      # Performance Configuration
+      - PERF_TEST_MAX_RECORDS=${PERF_TEST_MAX_RECORDS:-50000}
+      - PERF_TEST_MAX_BATCH=${PERF_TEST_MAX_BATCH:-5000}
+      - PERF_TEST_MEMORY_THRESHOLD=${PERF_TEST_MEMORY_THRESHOLD:-2048}
+      
+      # Application Settings
+      - SPRING_PROFILES_ACTIVE=prod,docker
+      - SERVER_PORT=8080
+      - JAVA_OPTS=-server -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0
+      
+      # Monitoring
+      - PROMETHEUS_ENABLED=${PROMETHEUS_ENABLED:-true}
+      - ACTUATOR_ENDPOINTS=${ACTUATOR_ENDPOINTS:-health,info,metrics,prometheus}
+      - ENABLE_METRICS=${ENABLE_METRICS:-true}
+      
+      # Logging
+      - LOG_LEVEL_APP=${LOG_LEVEL_APP:-INFO}
+      - LOG_LEVEL_SECURITY=${LOG_LEVEL_SECURITY:-WARN}
+      - LOG_FILE_MAX_SIZE=${LOG_FILE_MAX_SIZE:-100MB}
+      - LOG_FILE_MAX_HISTORY=${LOG_FILE_MAX_HISTORY:-30}
+      
+      # Deployment
+      - APP_VERSION=${APP_VERSION:-2.0.0}
+      - DEPLOY_REGION=${DEPLOY_REGION:-us-east-1}
+      - BUILD_TIME=${BUILD_TIME}
+      
+    ports:
+      - "${APP_PORT:-8080}:8080"
+    
+    volumes:
+      - app_logs:/app/logs
+      - app_data:/app/data
+      - app_config:/app/config
+      - ./config/application-prod.yml:/app/config/application-prod.yml:ro
+      - ./config/logback-prod.xml:/app/config/logback-prod.xml:ro
+      - ./certs:/app/certs:ro
+    
+    networks:
+      - performance-network
+    
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    
+    healthcheck:
+      test: ["/app/health-check.sh"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    
+    deploy:
+      resources:
+        limits:
+          memory: ${APP_MEMORY_LIMIT:-2g}
+          cpus: ${APP_CPU_LIMIT:-2.0}
+        reservations:
+          memory: ${APP_MEMORY_RESERVATION:-1g}
+          cpus: ${APP_CPU_RESERVATION:-1.0}
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+    
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.app.rule=Host(`${APP_DOMAIN:-localhost}`)"
+      - "traefik.http.routers.app.tls=true"
+      - "traefik.http.services.app.loadbalancer.server.port=8080"
+
+  # PostgreSQL Database - Production
+  postgres:
+    image: postgres:16-alpine
+    container_name: performance-postgres-prod
+    restart: unless-stopped
+    
+    environment:
+      POSTGRES_DB: ${DB_NAME:-performance_db}
+      POSTGRES_USER: ${DB_USERNAME:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+      PGDATA: /var/lib/postgresql/data/pgdata
+    
+    ports:
+      - "${DB_PORT:-5433}:5432"
+    
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - postgres_backups:/backups
+      - ./init-db.sql:/docker-entrypoint-initdb.d/01-init-db.sql:ro
+      - ./init-performance-tables.sql:/docker-entrypoint-initdb.d/02-init-performance-tables.sql:ro
+      - ./config/postgresql.conf:/etc/postgresql/postgresql.conf:ro
+    
+    networks:
+      - performance-network
+    
+    command: >
+      postgres
+      -c config_file=/etc/postgresql/postgresql.conf
+      -c log_destination=stderr
+      -c log_statement=all
+      -c log_min_duration_statement=1000
+      -c shared_preload_libraries=pg_stat_statements
+    
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-postgres} -d ${DB_NAME:-performance_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    
+    deploy:
+      resources:
+        limits:
+          memory: ${DB_MEMORY_LIMIT:-1g}
+          cpus: ${DB_CPU_LIMIT:-1.0}
+        reservations:
+          memory: ${DB_MEMORY_RESERVATION:-512m}
+          cpus: ${DB_CPU_RESERVATION:-0.5}
+
+  # Redis Cache - Production
+  redis:
+    image: redis:7-alpine
+    container_name: performance-redis-prod
+    restart: unless-stopped
+    
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+    
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    
+    volumes:
+      - redis_data:/data
+      - ./config/redis.conf:/usr/local/etc/redis/redis.conf:ro
+    
+    command: >
+      redis-server /usr/local/etc/redis/redis.conf
+      --requirepass ${REDIS_PASSWORD}
+      --appendonly yes
+      --maxmemory 512mb
+      --maxmemory-policy allkeys-lru
+    
+    networks:
+      - performance-network
+    
+    healthcheck:
+      test: ["CMD", "redis-cli", "--no-auth-warning", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+          cpus: '0.5'
+
+  # Prometheus - Production
+  prometheus:
+    image: prom/prometheus:v2.48.0
+    container_name: performance-prometheus-prod
+    restart: unless-stopped
+    
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"
+    
+    volumes:
+      - ./prometheus/prometheus-prod.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus/alerts-prod.yml:/etc/prometheus/alerts.yml:ro
+      - ./prometheus/rules:/etc/prometheus/rules:ro
+      - prometheus_data:/prometheus
+    
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=30d'
+      - '--storage.tsdb.retention.size=10GB'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+      - '--web.enable-admin-api'
+      - '--alertmanager.url=http://alertmanager:9093'
+    
+    networks:
+      - performance-network
+    
+    depends_on:
+      - app
+    
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    
+    deploy:
+      resources:
+        limits:
+          memory: 1g
+          cpus: '1.0'
+
+  # Grafana - Production
+  grafana:
+    image: grafana/grafana:10.2.0
+    container_name: performance-grafana-prod
+    restart: unless-stopped
+    
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SECURITY_ALLOW_EMBEDDING=false
+      - GF_AUTH_ANONYMOUS_ENABLED=false
+      - GF_SECURITY_COOKIE_SECURE=true
+      - GF_SECURITY_COOKIE_SAMESITE=strict
+      - GF_SERVER_ENABLE_GZIP=true
+      - GF_DATABASE_TYPE=postgres
+      - GF_DATABASE_HOST=postgres:5432
+      - GF_DATABASE_NAME=${GRAFANA_DB_NAME:-grafana}
+      - GF_DATABASE_USER=${GRAFANA_DB_USER:-grafana}
+      - GF_DATABASE_PASSWORD=${GRAFANA_DB_PASSWORD}
+      - GF_SESSION_PROVIDER=postgres
+      - GF_SESSION_PROVIDER_CONFIG=user=${GRAFANA_DB_USER:-grafana} password=${GRAFANA_DB_PASSWORD} host=postgres port=5432 dbname=${GRAFANA_DB_NAME:-grafana} sslmode=disable
+    
+    ports:
+      - "${GRAFANA_PORT:-3000}:3000"
+    
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - ./config/grafana.ini:/etc/grafana/grafana.ini:ro
+    
+    networks:
+      - performance-network
+    
+    depends_on:
+      - prometheus
+      - postgres
+    
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3000/api/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+          cpus: '0.5'
+
+  # AlertManager - Production
+  alertmanager:
+    image: prom/alertmanager:v0.26.0
+    container_name: performance-alertmanager-prod
+    restart: unless-stopped
+    
+    ports:
+      - "${ALERTMANAGER_PORT:-9093}:9093"
+    
+    volumes:
+      - ./prometheus/alertmanager-prod.yml:/etc/alertmanager/alertmanager.yml:ro
+      - alertmanager_data:/alertmanager
+    
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+      - '--storage.path=/alertmanager'
+      - '--web.external-url=http://${ALERTMANAGER_DOMAIN:-localhost:9093}'
+      - '--cluster.advertise-address=0.0.0.0:9093'
+    
+    networks:
+      - performance-network
+    
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9093/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    
+    deploy:
+      resources:
+        limits:
+          memory: 256m
+          cpus: '0.3'
+
+  # Nginx Reverse Proxy - Production
+  nginx:
+    image: nginx:alpine
+    container_name: performance-nginx-prod
+    restart: unless-stopped
+    
+    ports:
+      - "${HTTP_PORT:-80}:80"
+      - "${HTTPS_PORT:-443}:443"
+    
+    volumes:
+      - ./nginx/nginx-prod.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./certs:/etc/nginx/certs:ro
+      - nginx_logs:/var/log/nginx
+    
+    networks:
+      - performance-network
+    
+    depends_on:
+      - app
+      - grafana
+    
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    
+    deploy:
+      resources:
+        limits:
+          memory: 256m
+          cpus: '0.3'
+
+  # Log Aggregator (Optional)
+  fluentd:
+    image: fluentd:v1.16-1
+    container_name: performance-fluentd-prod
+    restart: unless-stopped
+    
+    volumes:
+      - ./fluentd/fluent.conf:/fluentd/etc/fluent.conf:ro
+      - app_logs:/var/log/app:ro
+      - nginx_logs:/var/log/nginx:ro
+      - fluentd_logs:/var/log/fluentd
+    
+    networks:
+      - performance-network
+    
+    environment:
+      - FLUENTD_CONF=fluent.conf
+    
+    deploy:
+      resources:
+        limits:
+          memory: 256m
+          cpus: '0.3'
+
+# Volumes
+volumes:
+  postgres_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${DATA_DIR:-./data}/postgres
+  
+  postgres_backups:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${BACKUP_DIR:-./backups}/postgres
+  
+  prometheus_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${DATA_DIR:-./data}/prometheus
+  
+  grafana_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${DATA_DIR:-./data}/grafana
+  
+  redis_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${DATA_DIR:-./data}/redis
+  
+  alertmanager_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${DATA_DIR:-./data}/alertmanager
+  
+  app_logs:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${LOG_DIR:-./logs}/app
+  
+  app_data:
+    driver: local
+  
+  app_config:
+    driver: local
+  
+  nginx_logs:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${LOG_DIR:-./logs}/nginx
+  
+  fluentd_logs:
+    driver: local
+
+# Networks
+networks:
+  performance-network:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: ${NETWORK_SUBNET:-172.20.0.0/16}
+    driver_opts:
+      com.docker.network.bridge.name: perf-bridge

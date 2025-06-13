@@ -1,4 +1,4 @@
-# Database Batch Performance Analyzer Configuration (JMX-Free)
+# Database Batch Performance Analyzer Configuration (Production-Ready)
 
 spring:
   application:
@@ -8,68 +8,108 @@ spring:
   jmx:
     enabled: false
 
-  # Database Configuration
+  # Database Configuration with Security
   datasource:
-    url: jdbc:postgresql://localhost:5433/performance_db
-    username: postgres
-    password: postgres
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5433}/${DB_NAME:performance_db}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
     driver-class-name: org.postgresql.Driver
     hikari:
       pool-name: PerformanceHikariCP
-      maximum-pool-size: 20
-      minimum-idle: 5
+      maximum-pool-size: ${DB_POOL_MAX_SIZE:20}
+      minimum-idle: ${DB_POOL_MIN_IDLE:5}
       idle-timeout: 300000
       connection-timeout: 20000
       leak-detection-threshold: 60000
       register-mbeans: false  # Disable HikariCP JMX
+      # Security: Connection validation
+      connection-test-query: SELECT 1
+      validation-timeout: 3000
+      # SSL Configuration for production
+      data-source-properties:
+        ssl: ${DB_SSL_ENABLED:false}
+        sslmode: ${DB_SSL_MODE:prefer}
+        applicationName: batch-performance-analyzer
 
   # JPA Configuration
   jpa:
     hibernate:
-      ddl-auto: create-drop
-    show-sql: true
+      ddl-auto: ${DDL_AUTO:create-drop}  # Use 'validate' in production
+    show-sql: ${SHOW_SQL:false}  # Disable in production
     open-in-view: false
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
-        format_sql: true
+        format_sql: ${FORMAT_SQL:false}  # Disable in production
         jdbc:
           batch_size: 1000
           batch_versioned_data: true
           fetch_size: 1000
         order_inserts: true
         order_updates: true
-        generate_statistics: true
+        generate_statistics: ${HIBERNATE_STATS:false}  # Disable in production
         cache:
           use_second_level_cache: false
 
-# Actuator Configuration (Web-based monitoring only)
+  # Security Configuration
+  security:
+    user:
+      name: ${SECURITY_DEFAULT_USER:admin}
+      password: ${SECURITY_DEFAULT_PASSWORD:admin123!}
+
+# Application Security Settings
+app:
+  security:
+    enabled: ${SECURITY_ENABLED:true}
+    admin:
+      username: ${ADMIN_USERNAME:admin}
+      password: ${ADMIN_PASSWORD:}  # MUST be set via environment variable
+    viewer:
+      username: ${VIEWER_USERNAME:viewer}
+      password: ${VIEWER_PASSWORD:}  # MUST be set via environment variable
+  
+  # Rate Limiting Configuration
+  rate-limit:
+    enabled: ${RATE_LIMIT_ENABLED:true}
+    requests-per-minute: ${RATE_LIMIT_RPM:60}
+    burst-capacity: ${RATE_LIMIT_BURST:10}
+    performance-operations-per-hour: ${RATE_LIMIT_PERF_OPS:20}
+
+# Actuator Configuration (Secured)
 management:
   endpoints:
     web:
       exposure:
-        include: "*"  # Expose all endpoints including prometheus
+        include: ${ACTUATOR_ENDPOINTS:health,info,metrics,prometheus}
+      base-path: /actuator
     jmx:
       exposure:
         exclude: "*"  # Disable all JMX endpoints
 
   endpoint:
     health:
-      show-details: always
+      show-details: ${HEALTH_SHOW_DETAILS:when-authorized}
+      show-components: when-authorized
+      probes:
+        enabled: true
     metrics:
       enabled: true
+    info:
+      enabled: true
 
-  # Prometheus configuration (Fixed)
+  # Security for actuator endpoints
+  security:
+    enabled: true
+
+  # Prometheus configuration (Fixed deprecated property)
   prometheus:
     metrics:
       export:
-        enabled: true
-        step: PT10S  # Export every 10 seconds for real-time monitoring
+        enabled: ${PROMETHEUS_ENABLED:true}
+        step: ${PROMETHEUS_STEP:PT15S}
 
-  # Metrics configuration
+  # Metrics configuration (Updated for Spring Boot 3.x)
   metrics:
-    export:
-      prometheus: {}
     distribution:
       percentiles-histogram:
         http.server.requests: true
@@ -87,40 +127,170 @@ management:
       jdbc: true
       hikaricp: false  # Disable HikariCP JMX metrics
 
-  # Disable InfluxDB
-  influx:
-    metrics:
-      export:
-        enabled: false
-
 # Custom Performance Testing Configuration
 performance:
   test:
-    total-records: 1000000
-    batch-sizes: [1, 10, 100, 1000, 10000]
+    total-records: ${PERF_TEST_TOTAL_RECORDS:10000}
+    batch-sizes: ${PERF_TEST_BATCH_SIZES:1,10,100,1000,10000}
+    max-records-per-operation: ${PERF_TEST_MAX_RECORDS:100000}
+    max-batch-size: ${PERF_TEST_MAX_BATCH:10000}
     connection-pool:
-      max-size: 20
-      min-idle: 5
+      max-size: ${DB_POOL_MAX_SIZE:20}
+      min-idle: ${DB_POOL_MIN_IDLE:5}
     metrics:
-      collection-interval: 1000
-      enable-system-metrics: true
-      enable-jvm-metrics: true
-      enable-database-metrics: true
+      collection-interval: ${METRICS_INTERVAL:1000}
+      enable-system-metrics: ${ENABLE_SYSTEM_METRICS:true}
+      enable-jvm-metrics: ${ENABLE_JVM_METRICS:true}
+      enable-database-metrics: ${ENABLE_DB_METRICS:true}
 
 # Server Configuration
 server:
-  port: 8080
+  port: ${SERVER_PORT:8080}
   compression:
     enabled: true
+    mime-types: text/html,text/xml,text/plain,text/css,text/javascript,application/javascript,application/json
+    min-response-size: 1024
+  # Security headers
+  error:
+    include-message: never
+    include-binding-errors: never
+    include-stacktrace: never
+    include-exception: false
+  # Connection timeout
+  tomcat:
+    connection-timeout: 20000
+    max-connections: 8192
+    threads:
+      max: 200
+      min-spare: 10
 
-# Logging Configuration
+# Logging Configuration (Security-focused)
 logging:
   level:
-    org.hibernate.SQL: DEBUG
-    org.hibernate.orm.jdbc.bind: TRACE
-    com.vivek.batchoperationvisulization: DEBUG
-    io.micrometer: INFO
-    org.springframework.jmx: OFF  # Disable JMX logging
-    org.springframework.boot.actuate: INFO
+    org.hibernate.SQL: ${LOG_LEVEL_SQL:WARN}  # Don't log SQL in production
+    org.hibernate.orm.jdbc.bind: ${LOG_LEVEL_BIND:WARN}  # Don't log parameters
+    com.vivek: ${LOG_LEVEL_APP:INFO}
+    io.micrometer: ${LOG_LEVEL_METRICS:WARN}
+    org.springframework.jmx: OFF
+    org.springframework.boot.actuate: ${LOG_LEVEL_ACTUATOR:WARN}
+    org.springframework.security: ${LOG_LEVEL_SECURITY:WARN}
+    org.springframework.web.filter.CommonsRequestLoggingFilter: ${LOG_LEVEL_REQUEST:WARN}
+    # Security: Don't log sensitive information
+    org.springframework.security.web.authentication: WARN
+    org.springframework.security.web.access: WARN
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n"
+  file:
+    name: ${LOG_FILE:logs/batch-performance-analyzer.log}
+    max-size: ${LOG_FILE_MAX_SIZE:100MB}
+    max-history: ${LOG_FILE_MAX_HISTORY:30}
+
+# Production Profile Overrides
+---
+spring:
+  config:
+    activate:
+      on-profile: production
+
+  # Production Database Settings
+  datasource:
+    hikari:
+      maximum-pool-size: 50
+      minimum-idle: 10
+      # Production SSL settings
+      data-source-properties:
+        ssl: true
+        sslmode: require
+
+  jpa:
+    hibernate:
+      ddl-auto: validate  # Never auto-create/drop in production
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+        generate_statistics: false
+
+# Application settings for production
+app:
+  security:
+    enabled: true
+  rate-limit:
+    enabled: true
+    requests-per-minute: 30  # More restrictive in production
+    performance-operations-per-hour: 10
+
+# Actuator settings for production
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: when-authorized
+
+# Logging for production
+logging:
+  level:
+    root: WARN
+    com.vivek: INFO
+    org.hibernate: WARN
+    org.springframework.security: WARN
+  file:
+    name: /var/log/batch-performance-analyzer/application.log
+
+# Docker Profile Configuration
+---
+spring:
+  config:
+    activate:
+      on-profile: docker
+
+  # Docker-specific database settings
+  datasource:
+    url: jdbc:postgresql://postgres:5432/performance_db
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 30000
+      # Docker networking optimization
+      leak-detection-threshold: 60000
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop  # OK for development/testing
+    show-sql: false  # Keep false even in Docker to reduce noise
+    properties:
+      hibernate:
+        format_sql: false
+        generate_statistics: true
+
+# Docker-specific application settings
+app:
+  security:
+    enabled: true
+  rate-limit:
+    enabled: true
+    requests-per-minute: 60
+    performance-operations-per-hour: 20
+
+# Docker-specific actuator settings
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"  # More permissive in Docker development
+  endpoint:
+    health:
+      show-details: always
+
+# Docker-specific logging
+logging:
+  level:
+    com.vivek: INFO
+    org.springframework.security: INFO
+    org.hibernate.SQL: WARN
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level [%X{traceId:-},%X{spanId:-}] %logger{36} - %msg%n"
