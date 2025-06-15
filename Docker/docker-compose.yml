@@ -1,5 +1,4 @@
-version: '3.8'
-
+# Fixed Docker Compose Configuration (removed obsolete version)
 services:
   # Spring Boot Application
   app:
@@ -36,13 +35,15 @@ services:
       - DDL_AUTO=create-drop
       - SHOW_SQL=false
       - PROMETHEUS_ENABLED=true
+      - SPRING_MAIN_ALLOW_BEAN_DEFINITION_OVERRIDING=true
       
       # Logging
       - LOG_LEVEL_APP=INFO
       - LOG_LEVEL_SQL=WARN
       - LOG_LEVEL_SECURITY=WARN
+
       
-      # JVM Settings
+      # JVM Settings (Fixed for Java 21)
       - JAVA_OPTS=-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:+UseG1GC
       
     ports:
@@ -183,10 +184,10 @@ services:
     ports:
       - "9093:9093"
     volumes:
-      - ./prometheus/alertmanager.yml:/etc/alertmanager/alertmanager.yml
+      - ./prometheus/alertmanager.yml:/etc/prometheus/alertmanager.yml
       - alertmanager_data:/alertmanager
     command:
-      - '--config.file=/etc/alertmanager/alertmanager.yml'
+      - '--config.file=/etc/prometheus/alertmanager.yml'
       - '--storage.path=/alertmanager'
       - '--web.external-url=http://localhost:9093'
     networks:
