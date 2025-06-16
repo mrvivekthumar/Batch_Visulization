@@ -1156,7 +1156,7 @@
             loadDatabaseStats();
 
             // Auto-refresh every 30 seconds
-            window.refreshInterval = setInterval(() => {
+            // DISABLED: window.refreshInterval = setInterval(() => {
                 loadSystemStats();
                 loadDatabaseStats();
             }, 30000);

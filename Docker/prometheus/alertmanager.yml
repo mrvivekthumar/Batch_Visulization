@@ -1,33 +1,20 @@
-# AlertManager Configuration
-# Save this as: Docker/prometheus/alertmanager.yml
-
 global:
-  smtp_smarthost: "localhost:587"
-  smtp_from: "alerts@yourcompany.com"
-  smtp_auth_username: "alerts@yourcompany.com"
-  smtp_auth_password: "your-email-password"
+  smtp_smarthost: localhost:587
+  smtp_from: alerts@company.com
 
 route:
-  group_by: ["alertname"]
+  group_by: ['alertname']
   group_wait: 10s
   group_interval: 10s
   repeat_interval: 1h
-  receiver: "web.hook"
+  receiver: 'null-receiver'
 
 receivers:
-  - name: "web.hook"
-    email_configs:
-      - to: "admin@yourcompany.com"
-        subject: "Alert: {{ .GroupLabels.alertname }}"
-        body: |
-          {{ range .Alerts }}
-          Alert: {{ .Annotations.summary }}
-          Description: {{ .Annotations.description }}
-          {{ end }}
+- name: 'null-receiver'
 
 inhibit_rules:
-  - source_match:
-      severity: "critical"
-    target_match:
-      severity: "warning"
-    equal: ["alertname", "dev", "instance"]
+- source_match:
+    severity: 'critical'
+  target_match:
+    severity: 'warning'
+  equal: ['alertname', 'dev', 'instance']

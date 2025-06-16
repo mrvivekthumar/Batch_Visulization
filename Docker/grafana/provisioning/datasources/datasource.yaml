@@ -1,0 +1,9 @@
+# Save as: Docker/grafana/provisioning/datasources/prometheus.yaml
+# Note: Using .yaml extension (not .yml) can help with schema detection
+
+datasources:
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
