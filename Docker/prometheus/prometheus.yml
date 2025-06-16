@@ -1,17 +1,21 @@
+# Fixed Prometheus Configuration
+# Save this as: Docker/prometheus/prometheus.yml
+
 global:
   scrape_interval: 15s
   evaluation_interval: 15s
   external_labels:
     monitor: "batch-performance-monitor"
 
-rule_files:
-  - "alerts.yml"
-
+# FIXED: Proper AlertManager configuration
 alerting:
   alertmanagers:
     - static_configs:
         - targets:
             - alertmanager:9093
+
+rule_files:
+  - "alerts.yml"
 
 scrape_configs:
   # Prometheus itself
@@ -50,16 +54,3 @@ scrape_configs:
     scrape_interval: 30s
     metrics_path: "/metrics"
     # Note: Requires redis_exporter sidecar container
-
-  # Docker Container Metrics (if cadvisor is added)
-  - job_name: "cadvisor"
-    static_configs:
-      - targets: ["cadvisor:8080"]
-    scrape_interval: 30s
-    metrics_path: "/metrics"
-
-  # Node/System Metrics (if node_exporter is added)
-  - job_name: "node-exporter"
-    static_configs:
-      - targets: ["node-exporter:9100"]
-    scrape_interval: 30s

@@ -126,6 +126,26 @@ management:
       process: true
       jdbc: true
       hikaricp: false  # Disable HikariCP JMX metrics
+  web:
+    resources:
+      static-locations: 
+        - classpath:/static/
+        - classpath:/public/
+        - classpath:/resources/
+        - classpath:/META-INF/resources/
+      cache:
+        period: 3600  # Cache static resources for 1 hour
+      chain:
+        strategy:
+          content:
+            enabled: true
+            paths: /**
+        cache: true
+  
+  # MVC Configuration
+  mvc:
+    throw-exception-if-no-handler-found: false  # Prevents exceptions for missing favicon
+    static-path-pattern: /**
 
 # Custom Performance Testing Configuration
 performance:
@@ -156,6 +176,9 @@ server:
     include-binding-errors: never
     include-stacktrace: never
     include-exception: false
+    whitelabel:
+      enabled: false  # Disable default error page
+    path: /error
   # Connection timeout
   tomcat:
     connection-timeout: 20000
