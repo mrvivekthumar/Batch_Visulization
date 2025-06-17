@@ -997,13 +997,18 @@
             showLoading(`Running INSERT test: ${totalRecords} records with batch size ${batchSize}...`);
 
             try {
-                const response = await makeAuthenticatedRequest('/api/v1/performance/initialize', {
-                    method: 'POST',
-                    params: {
-                        totalRecords: parseInt(totalRecords),
-                        batchSize: parseInt(batchSize)
-                    }
+
+                const url = `/api/v1/performance/initialize?totalRecords=${totalRecords}&batchSize=${batchSize}`;
+                const response = await makeAuthenticatedRequest(url, {
+                    method: 'POST'
                 });
+                // const response = await makeAuthenticatedRequest('/api/v1/performance/initialize', {
+                //     method: 'POST',
+                //     params: {
+                //         totalRecords: parseInt(totalRecords),
+                //         batchSize: parseInt(batchSize)
+                //     }
+                // });
 
                 const result = response.data.data;
                 testResults.push(result);
@@ -1041,13 +1046,17 @@
             showLoading(`Running DELETE test: ${totalRecords} records with batch size ${batchSize}...`);
 
             try {
-                const response = await makeAuthenticatedRequest('/api/v1/performance/delete', {
-                    method: 'POST',
-                    params: {
-                        totalRecords: parseInt(totalRecords),
-                        batchSize: parseInt(batchSize)
-                    }
+                const url = `/api/v1/performance/delete?totalRecords=${totalRecords}&batchSize=${batchSize}`;
+                const response = await makeAuthenticatedRequest(url, {
+                    method: 'POST'
                 });
+                // const response = await makeAuthenticatedRequest('/api/v1/performance/delete', {
+                //     method: 'POST',
+                //     params: {
+                //         totalRecords: parseInt(totalRecords),
+                //         batchSize: parseInt(batchSize)
+                //     }
+                // });
 
                 const result = response.data.data;
                 testResults.push(result);
@@ -1156,10 +1165,11 @@
             loadDatabaseStats();
 
             // Auto-refresh every 30 seconds
-            // DISABLED: window.refreshInterval = setInterval(() => {
-                loadSystemStats();
-                loadDatabaseStats();
-            }, 30000);
+            // window.refreshInterval = setInterval(() => {
+            //     loadSystemStats();
+            //     loadDatabaseStats();
+            // }, 30000);
+
         }
 
         // ===== UI HELPERS =====

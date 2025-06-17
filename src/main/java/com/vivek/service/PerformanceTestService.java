@@ -110,7 +110,7 @@ public class PerformanceTestService {
     /**
      * Smart Insert with enhanced error handling and validation
      */
-    @Transactional(isolation = Isolation.READ_COMMITTED, propagation = Propagation.REQUIRED, timeout = 300, rollbackFor = Exception.class)
+    @Transactional(propagation = Propagation.REQUIRED, timeout = 300, rollbackFor = Exception.class)
     @Retryable(value = { DataAccessException.class }, maxAttempts = 3, backoff = @Backoff(delay = 1000, multiplier = 2))
     public PerformanceResult smartInsert(int totalRecords, int batchSize) {
         String operationId = UUID.randomUUID().toString();
@@ -196,7 +196,7 @@ public class PerformanceTestService {
     /**
      * Smart Delete with enhanced error handling and validation
      */
-    @Transactional(isolation = Isolation.READ_COMMITTED, propagation = Propagation.REQUIRED, timeout = 600, rollbackFor = Exception.class)
+    @Transactional(propagation = Propagation.REQUIRED, timeout = 600, rollbackFor = Exception.class)
     @Retryable(value = { DataAccessException.class }, maxAttempts = 3, backoff = @Backoff(delay = 1000, multiplier = 2))
     public PerformanceResult smartDelete(int totalRecords, int batchSize) {
         String operationId = UUID.randomUUID().toString();
