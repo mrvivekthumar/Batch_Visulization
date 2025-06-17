@@ -93,9 +93,9 @@ app:
   # Rate Limiting - Production (more restrictive)
   rate-limit:
     enabled: true
-    requests-per-minute: ${RATE_LIMIT_RPM:30}
-    burst-capacity: ${RATE_LIMIT_BURST:5}
-    performance-operations-per-hour: ${RATE_LIMIT_PERF_OPS:10}
+    requests-per-minute: ${RATE_LIMIT_RPM:240}
+    burst-capacity: ${RATE_LIMIT_BURST:30}
+    performance-operations-per-hour: ${RATE_LIMIT_PERF_OPS:100}
     ip-whitelist: ${RATE_LIMIT_IP_WHITELIST:}
 
 # Performance Testing Configuration - Production

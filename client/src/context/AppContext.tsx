@@ -1,7 +1,7 @@
-// React Context for Global State Management
-// Using React 19 features with TypeScript
+// Fixed version of your AppContext.tsx
+// Add useCallback import and fix the refreshStats function
 
-import React, { createContext, useContext, useReducer, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, useCallback, ReactNode } from 'react';
 import { User, PerformanceResult, SystemStats, DatabaseStats, AppState, NotificationState } from '../types/index';
 import { apiService } from '../services/apiService';
 
@@ -92,7 +92,6 @@ function appReducer(state: AppState, action: AppAction): AppState {
 interface AppContextType {
     state: AppState;
     dispatch: React.Dispatch<AppAction>;
-    // Helper functions
     showNotification: (message: string, severity?: 'success' | 'error' | 'warning' | 'info') => void;
     setLoading: (isLoading: boolean, message?: string) => void;
     login: (username: string, password: string) => Promise<boolean>;
@@ -120,7 +119,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     }, []);
 
     // Helper function to show notifications
-    const showNotification = (
+    const showNotification = useCallback((
         message: string,
         severity: 'success' | 'error' | 'warning' | 'info' = 'info'
     ) => {
@@ -128,18 +127,18 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
             type: 'SET_NOTIFICATION',
             payload: { open: true, message, severity },
         });
-    };
+    }, []);
 
     // Helper function to set loading state
-    const setLoading = (isLoading: boolean, message?: string) => {
+    const setLoading = useCallback((isLoading: boolean, message?: string) => {
         dispatch({
             type: 'SET_LOADING',
             payload: { isLoading, message },
         });
-    };
+    }, []);
 
     // Login function
-    const login = async (username: string, password: string): Promise<boolean> => {
+    const login = useCallback(async (username: string, password: string): Promise<boolean> => {
         setLoading(true, 'Authenticating...');
         try {
             const user = await apiService.login({ username, password });
@@ -153,17 +152,17 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [setLoading, showNotification]);
 
     // Logout function
-    const logout = () => {
+    const logout = useCallback(() => {
         apiService.logout();
         dispatch({ type: 'RESET_STATE' });
         showNotification('Logged out successfully', 'info');
-    };
+    }, [showNotification]);
 
-    // Refresh system and database stats
-    const refreshStats = async () => {
+    // FIXED: Refresh system and database stats with useCallback
+    const refreshStats = useCallback(async () => {
         try {
             const [systemStats, databaseStats] = await Promise.all([
                 apiService.getSystemStats(),
@@ -173,9 +172,10 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
             dispatch({ type: 'SET_SYSTEM_STATS', payload: systemStats });
             dispatch({ type: 'SET_DATABASE_STATS', payload: databaseStats });
         } catch (error: any) {
+            console.error('Failed to load statistics:', error);
             showNotification('Failed to load statistics', 'warning');
         }
-    };
+    }, [showNotification]); // Only depends on showNotification
 
     const contextValue: AppContextType = {
         state,

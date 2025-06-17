@@ -110,8 +110,11 @@ public class PerformanceTestService {
     /**
      * Smart Insert with enhanced error handling and validation
      */
-    @Transactional(propagation = Propagation.REQUIRED, timeout = 300, rollbackFor = Exception.class)
-    @Retryable(value = { DataAccessException.class }, maxAttempts = 3, backoff = @Backoff(delay = 1000, multiplier = 2))
+    // @Transactional(propagation = Propagation.REQUIRED, timeout = 300, rollbackFor
+    // = Exception.class)
+    // @Retryable(value = { DataAccessException.class }, maxAttempts = 3, backoff =
+    // @Backoff(delay = 1000, multiplier = 2))
+    @Transactional(timeout = 600)
     public PerformanceResult smartInsert(int totalRecords, int batchSize) {
         String operationId = UUID.randomUUID().toString();
         log.info("📝 [{}] Smart Insert started: {} records with batch size {}",
@@ -196,8 +199,11 @@ public class PerformanceTestService {
     /**
      * Smart Delete with enhanced error handling and validation
      */
-    @Transactional(propagation = Propagation.REQUIRED, timeout = 600, rollbackFor = Exception.class)
-    @Retryable(value = { DataAccessException.class }, maxAttempts = 3, backoff = @Backoff(delay = 1000, multiplier = 2))
+    // @Transactional(propagation = Propagation.REQUIRED, timeout = 600, rollbackFor
+    // = Exception.class)
+    // @Retryable(value = { DataAccessException.class }, maxAttempts = 3, backoff =
+    // @Backoff(delay = 1000, multiplier = 2))
+    @Transactional(timeout = 900)
     public PerformanceResult smartDelete(int totalRecords, int batchSize) {
         String operationId = UUID.randomUUID().toString();
         log.info("🗑️ [{}] Smart Delete started: {} records with batch size {}",
@@ -401,17 +407,13 @@ public class PerformanceTestService {
         for (int i = 0; i < totalRecords; i++) {
             try {
                 PerformanceTestRecord record = PerformanceTestRecord.createTestRecord(i);
-                repository.insertSingleRecord(
-                        record.getTestId(),
-                        record.getCategory(),
-                        record.getDescription(),
-                        record.getNumericValue(),
-                        record.getStringValue(),
-                        record.getJsonData(),
-                        record.getIsActive(),
-                        record.getPriority(),
-                        record.getTags());
-                inserted++;
+
+                // Use JPA save() instead of native SQL query
+                PerformanceTestRecord savedRecord = repository.save(record);
+
+                if (savedRecord != null && savedRecord.getId() != null) {
+                    inserted++;
+                }
 
                 if (i % 1000 == 0 && i > 0) {
                     log.debug("📝 [{}] Inserted {} records (single)", operationId, i);
@@ -437,17 +439,18 @@ public class PerformanceTestService {
             }
 
             try {
-                repository.batchSave(batch);
-                totalInserted += batch.size();
+                // Use JPA saveAll() instead of custom batchSave()
+                List<PerformanceTestRecord> savedRecords = repository.saveAll(batch);
+                totalInserted += savedRecords.size();
                 batchCount++;
 
                 if (batchCount % 10 == 0) {
-                    log.debug("📝 [{}] Inserted {} batches, {} total records",
+                    log.debug("📝 [{}] Completed {} batches, {} records",
                             operationId, batchCount, totalInserted);
                 }
             } catch (Exception e) {
-                log.warn("⚠️ [{}] Failed to insert batch {}: {}", operationId, batchCount, e.getMessage());
-                // Continue with next batch
+                log.warn("⚠️ [{}] Failed to insert batch {}: {}",
+                        operationId, batchCount, e.getMessage());
             }
         }
 

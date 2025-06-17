@@ -36,9 +36,9 @@ services:
       
       # Rate Limiting (Production settings)
       - RATE_LIMIT_ENABLED=true
-      - RATE_LIMIT_RPM=${RATE_LIMIT_RPM:-30}
-      - RATE_LIMIT_BURST=${RATE_LIMIT_BURST:-5}
-      - RATE_LIMIT_PERF_OPS=${RATE_LIMIT_PERF_OPS:-10}
+      - RATE_LIMIT_RPM=${RATE_LIMIT_RPM:-240}
+      - RATE_LIMIT_BURST=${RATE_LIMIT_BURST:-30}
+      - RATE_LIMIT_PERF_OPS=${RATE_LIMIT_PERF_OPS:-100}
       
       # Performance Configuration
       - PERF_TEST_MAX_RECORDS=${PERF_TEST_MAX_RECORDS:-50000}

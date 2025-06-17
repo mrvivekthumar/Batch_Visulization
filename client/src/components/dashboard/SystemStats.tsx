@@ -13,12 +13,6 @@ const SystemStats: React.FC<SystemStatsProps> = ({
     databaseStats,
     onRefresh
 }) => {
-    const formatBytes = (bytes: number) => {
-        if (bytes === 0) return '0 MB';
-        const mb = bytes / (1024 * 1024);
-        return `${mb.toFixed(1)} MB`;
-    };
-
     const formatUptime = (uptimeStr: string) => {
         // Parse uptime string (e.g., "2h 30m 45s")
         const match = uptimeStr.match(/(\d+)h\s*(\d+)m\s*(\d+)s/);
@@ -117,31 +111,26 @@ const SystemStats: React.FC<SystemStatsProps> = ({
                     </div>
                     {systemStats ? (
                         <div className="stat-content">
-                            <div className="memory-bar">
-                                <div
-                                    className="memory-fill"
-                                    style={{ width: `${systemStats.memoryInfo?.usagePercentage || 0}%` }}
-                                ></div>
-                                <span className="memory-text">
-                                    {systemStats.memoryInfo?.usagePercentage?.toFixed(1) || '0'}%
-                                </span>
+                            <div className="stat-row">
+                                <span className="stat-label">Total Memory:</span>
+                                <span className="stat-value">{systemStats.memoryInfo.totalMemoryMB} MB</span>
                             </div>
                             <div className="stat-row">
-                                <span className="stat-label">Used:</span>
-                                <span className="stat-value">
-                                    {formatBytes(systemStats.memoryInfo.usedMemoryMB * 1024 * 1024)}
-                                </span>
+                                <span className="stat-label">Used Memory:</span>
+                                <span className="stat-value">{systemStats.memoryInfo.usedMemoryMB} MB</span>
                             </div>
                             <div className="stat-row">
-                                <span className="stat-label">Total:</span>
-                                <span className="stat-value">
-                                    {formatBytes(systemStats.memoryInfo.totalMemoryMB * 1024 * 1024)}
-                                </span>
+                                <span className="stat-label">Free Memory:</span>
+                                <span className="stat-value">{systemStats.memoryInfo.freeMemoryMB} MB</span>
                             </div>
                             <div className="stat-row">
-                                <span className="stat-label">Max:</span>
-                                <span className="stat-value">
-                                    {formatBytes(systemStats.memoryInfo.maxMemoryMB * 1024 * 1024)}
+                                <span className="stat-label">Max Memory:</span>
+                                <span className="stat-value">{systemStats.memoryInfo.maxMemoryMB} MB</span>
+                            </div>
+                            <div className="stat-row">
+                                <span className="stat-label">Usage:</span>
+                                <span className={`stat-value ${systemStats.memoryInfo.usagePercentage > 70 ? 'warning' : ''}`}>
+                                    {systemStats.memoryInfo.usagePercentage.toFixed(1)}%
                                 </span>
                             </div>
                         </div>
@@ -150,48 +139,41 @@ const SystemStats: React.FC<SystemStatsProps> = ({
                     )}
                 </div>
 
-                {/* CPU Information */}
-                <div className="stat-card cpu-card">
+                {/* Processor Information */}
+                <div className="stat-card processor-card">
                     <div className="stat-header">
-                        <h3>🖥️ CPU Performance</h3>
+                        <h3>🖥️ Processor Info</h3>
                     </div>
                     {systemStats ? (
                         <div className="stat-content">
-                            <div className="cpu-usage">
-                                <div className="cpu-gauge">
-                                    <div
-                                        className="cpu-fill"
-                                        style={{
-                                            transform: `rotate(${systemStats.processorInfo.processCpuLoad * 180}deg)`
-                                        }}
-                                    ></div>
-                                    <span className="cpu-text">
-                                        {(systemStats.processorInfo.processCpuLoad * 100).toFixed(1)}%
-                                    </span>
-                                </div>
-                            </div>
                             <div className="stat-row">
-                                <span className="stat-label">Cores:</span>
+                                <span className="stat-label">Available Processors:</span>
                                 <span className="stat-value">{systemStats.processorInfo.availableProcessors}</span>
                             </div>
                             <div className="stat-row">
-                                <span className="stat-label">Load Avg:</span>
+                                <span className="stat-label">System Load:</span>
                                 <span className="stat-value">
                                     {systemStats.processorInfo.systemLoadAverage.toFixed(2)}
                                 </span>
                             </div>
+                            <div className="stat-row">
+                                <span className="stat-label">CPU Usage:</span>
+                                <span className="stat-value">
+                                    {(systemStats.processorInfo.processCpuLoad * 100).toFixed(1)}%
+                                </span>
+                            </div>
                         </div>
                     ) : (
-                        <div className="stat-loading">Loading CPU info...</div>
+                        <div className="stat-loading">Loading processor info...</div>
                     )}
                 </div>
 
                 {/* Application Information */}
                 <div className="stat-card app-card">
                     <div className="stat-header">
-                        <h3>🚀 Application Status</h3>
+                        <h3>🚀 Application Info</h3>
                     </div>
-                    {systemStats?.applicationInfo ? (
+                    {systemStats ? (
                         <div className="stat-content">
                             <div className="stat-row">
                                 <span className="stat-label">Version:</span>

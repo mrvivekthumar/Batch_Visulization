@@ -29,8 +29,11 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
         loadInitialData();
 
         // Set up periodic refresh every 30 seconds
-        const interval = setInterval(refreshStats, 30000);
+        const interval = process.env.NODE_ENV === 'production'
+            ? setInterval(refreshStats, 30000)
+            : setInterval(refreshStats, 120000);
         return () => clearInterval(interval);
+
     }, [refreshStats]);
 
     const runInsertTest = async () => {

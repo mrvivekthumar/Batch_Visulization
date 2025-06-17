@@ -71,9 +71,9 @@ app:
   # Rate Limiting Configuration
   rate-limit:
     enabled: ${RATE_LIMIT_ENABLED:true}
-    requests-per-minute: ${RATE_LIMIT_RPM:60}
-    burst-capacity: ${RATE_LIMIT_BURST:10}
-    performance-operations-per-hour: ${RATE_LIMIT_PERF_OPS:20}
+    requests-per-minute: ${RATE_LIMIT_RPM:240}
+    burst-capacity: ${RATE_LIMIT_BURST:30}
+    performance-operations-per-hour: ${RATE_LIMIT_PERF_OPS:100}
 
 # Actuator Configuration (Secured)
 management:

@@ -24,10 +24,10 @@ services:
       - VIEWER_PASSWORD=${VIEWER_PASSWORD:-viewer123!}
       
       # Rate Limiting
-      - RATE_LIMIT_ENABLED=true
-      - RATE_LIMIT_RPM=60
-      - RATE_LIMIT_BURST=10
-      - RATE_LIMIT_PERF_OPS=20
+      - RATE_LIMIT_ENABLED=false
+      - RATE_LIMIT_RPM=240
+      - RATE_LIMIT_BURST=30
+      - RATE_LIMIT_PERF_OPS=100
       
       # Application Settings
       - SERVER_PORT=8080
