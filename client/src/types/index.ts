@@ -1,12 +1,147 @@
-// User and Authentication Types
+// TypeScript Type Definitions for Batch Performance Analyzer
+// These types match exactly with your Spring Boot backend API
+
+// ===== API Response Types =====
+export interface ApiResponse<T> {
+    success: boolean;
+    message: string;
+    data: T;
+    timestamp: string;
+    errorDetails?: string;
+}
+
+// ===== Authentication Types =====
+export interface LoginCredentials {
+    username: string;
+    password: string;
+}
+
 export interface User {
     username: string;
     role: 'ADMIN' | 'VIEWER';
 }
 
-export interface LoginCredentials {
-    username: string;
-    password: string;
+export interface AuthResponse {
+    token: string;
+    user: User;
+}
+
+// ===== Performance Test Types =====
+export interface TestConfig {
+    totalRecords: number;
+    batchSize: number;
+}
+
+export interface PerformanceResult {
+    operationType: 'INSERT' | 'DELETE';
+    recordsProcessed: number;
+    batchSize: number;
+    durationMs: number;
+    throughputRecordsPerSecond: number;
+    avgTimePerBatch: number;
+    avgTimePerRecord: number;
+    totalBatches: number;
+    memoryUsedMB: number;
+    cpuUsagePercent: number;
+    timestamp: string;
+    testId: string;
+    status: 'SUCCESS' | 'FAILED' | 'PARTIAL';
+}
+
+// ===== Statistics Types =====
+export interface SystemStats {
+    timestamp: string;
+    jvmInfo: {
+        version: string;
+        vendor: string;
+        runtime: string;
+    };
+    memoryInfo: {
+        totalMemoryMB: number;
+        usedMemoryMB: number;
+        freeMemoryMB: number;
+        maxMemoryMB: number;
+        usagePercentage: number;
+    };
+    processorInfo: {
+        availableProcessors: number;
+        systemLoadAverage: number;
+        processCpuLoad: number;
+    };
+    applicationInfo: {
+        uptime: string;
+        profile: string;
+        version: string;
+        port: number;
+    };
+}
+
+export interface DatabaseStats {
+    timestamp: string;
+    connectionInfo: {
+        url: string;
+        driverName: string;
+        productName: string;
+        productVersion: string;
+        isValid: boolean;
+        activeConnections: number;
+        idleConnections: number;
+        maxConnections: number;
+    };
+    tableInfo: {
+        tableName: string;
+        totalRecords: number;
+        estimatedSizeMB: number;
+        lastUpdated: string;
+    };
+    performanceMetrics: {
+        avgInsertTimeMs: number;
+        avgDeleteTimeMs: number;
+        totalInsertOperations: number;
+        totalDeleteOperations: number;
+        lastTestTimestamp: string;
+    };
+}
+
+// ===== Chart Data Types =====
+export interface ChartDataPoint {
+    name: string;
+    insert?: number;
+    delete?: number;
+    throughput?: number;
+    memory?: number;
+    records?: number;
+    duration?: number;
+    timestamp?: string;
+}
+
+export interface PerformanceChartData {
+    throughputData: ChartDataPoint[];
+    durationData: ChartDataPoint[];
+    memoryData: ChartDataPoint[];
+    comparisonData: ChartDataPoint[];
+}
+
+// ===== UI State Types =====
+export interface LoadingState {
+    isLoading: boolean;
+    message?: string;
+}
+
+export interface NotificationState {
+    open: boolean;
+    message: string;
+    severity: 'success' | 'error' | 'warning' | 'info';
+}
+
+export interface AppState {
+    user: User | null;
+    isAuthenticated: boolean;
+    loading: LoadingState;
+    notification: NotificationState;
+    testResults: PerformanceResult[];
+    systemStats: SystemStats | null;
+    databaseStats: DatabaseStats | null;
 }
 
 export interface AuthState {
@@ -17,84 +152,57 @@ export interface AuthState {
     error: string | null;
 }
 
-// Performance Test Types (matching your Spring Boot DTOs)
-export interface PerformanceResult {
-    testType: string;
-    batchSize: number;
-    recordsProcessed: number;
-    durationMs: number;
-    averageTimePerRecord: number;
-    memoryUsedMB: number;
-    recordsPerSecond: number;
-    batchCount: number;
-    startTime: string;
-    endTime: string;
-    operationId?: string;
+// ===== Form Types =====
+export interface TestFormData {
+    totalRecords: string;
+    batchSize: string;
 }
 
-export interface DatabaseStats {
-    totalRecords: number;
-    tableSize: string;
-    connectionInfo: string;
-    timestamp: string;
-    activeOperations: number;
+export interface TestFormErrors {
+    totalRecords?: string;
+    batchSize?: string;
+    general?: string;
 }
 
-export interface SystemStats {
-    jvm: {
-        availableProcessors: number;
-        totalMemoryMB: number;
-        usedMemoryMB: number;
-        freeMemoryMB: number;
-        maxMemoryMB: number;
-        memoryUsagePercent: number;
+// ===== API Error Types =====
+export interface ApiError {
+    response?: {
+        status: number;
+        data?: any; // Made more flexible for error responses
     };
-    os: {
-        name: string;
-        version: string;
-        architecture: string;
-    };
-    application: {
-        name: string;
-        version: string;
-        uptime: string;
-        timestamp: string;
-    };
-}
-
-// API Response Types
-export interface ApiResponse<T> {
-    success: boolean;
-    message?: string;
-    data: T;
-    timestamp: string;
-    error?: string;
-}
-
-// Rate Limiting Types
-export interface RateLimitInfo {
-    general: number | null;
-    performance: number | null;
-}
-
-// Chart Data Types
-export interface ChartDataPoint {
-    label: string;
-    value: number;
-}
-
-// Test Configuration
-export interface TestConfig {
-    totalRecords: number;
-    batchSize: number;
-}
-
-// Notification Types
-export type NotificationType = 'success' | 'error' | 'warning' | 'info';
-
-export interface Notification {
-    id: string;
+    request?: any;
     message: string;
-    type: NotificationType;
-    timestamp: number;
 }
+
+// ===== Constants =====
+export const TEST_LIMITS = {
+    MIN_RECORDS: 100,
+    MAX_RECORDS: 100000,
+    MIN_BATCH_SIZE: 1,
+    MAX_BATCH_SIZE: 10000,
+} as const;
+
+export const USER_ROLES = {
+    ADMIN: 'ADMIN',
+    VIEWER: 'VIEWER',
+} as const;
+
+export const OPERATION_TYPES = {
+    INSERT: 'INSERT',
+    DELETE: 'DELETE',
+} as const;
+
+// ===== Utility Types =====
+export type Theme = 'light' | 'dark';
+export type OperationType = keyof typeof OPERATION_TYPES;
+export type UserRole = keyof typeof USER_ROLES;
+
+
+export const safeFormatDate = (timestamp: string | undefined) => {
+    if (!timestamp) return 'Unknown';
+    try {
+        return new Date(timestamp).toLocaleString();
+    } catch {
+        return 'Invalid date';
+    }
+};

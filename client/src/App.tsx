@@ -1,19 +1,23 @@
-import React from 'react';
-import { AuthProvider, useAuth } from './components/auth';
+import { AppProvider } from './context/AppContext';
+import { useApp } from './context/AppContext';
 import LoginForm from './components/auth/LoginForm';
 import Dashboard from './components/dashboard/Dashboard';
 import './App.css';
+import { LoginCredentials } from './types';
 
-// Main App Content Component
 const AppContent: React.FC = () => {
-  const { state, login, logout } = useAuth();
+  const { state, login, logout } = useApp();
+
+  const handleLogin = async (credentials: LoginCredentials) => {
+    await login(credentials.username, credentials.password); // Convert object to parameters
+  };
 
   if (!state.isAuthenticated) {
     return (
       <LoginForm
-        onLogin={login}
-        isLoading={state.isLoading}
-        error={state.error}
+        onLogin={handleLogin} // Use wrapper function
+        isLoading={state.loading.isLoading}
+        error={state.notification.open ? state.notification.message : null}
       />
     );
   }
@@ -21,14 +25,13 @@ const AppContent: React.FC = () => {
   return <Dashboard user={state.user!} onLogout={logout} />;
 };
 
-// Main App Component
 const App: React.FC = () => {
   return (
-    <AuthProvider>
+    <AppProvider> {/* Changed from AuthProvider */}
       <div className="App">
         <AppContent />
       </div>
-    </AuthProvider>
+    </AppProvider>
   );
 };
 
