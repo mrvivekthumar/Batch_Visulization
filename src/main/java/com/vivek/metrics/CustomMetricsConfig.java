@@ -20,9 +20,11 @@ import lombok.extern.slf4j.Slf4j;
  * 
  * Provides application-specific metrics including:
  * - Database performance metrics
- * - Business logic metrics
  * - System resource metrics
  * - Custom gauges and counters
+ * 
+ * NOTE: ApplicationMetrics is already a @Component, so we don't create a bean
+ * for it here
  * 
  * @author Vivek
  * @version 1.0.0
@@ -40,20 +42,16 @@ public class CustomMetricsConfig {
     }
 
     /**
-     * Application Business Metrics
+     * NOTE: ApplicationMetrics bean removed - it's already a @Component
+     * Removing this prevents the duplicate bean conflict
      */
-    @Bean
-    public MeterBinder applicationMetrics() {
-        return new ApplicationMetrics();
-    }
 
     /**
      * System Resource Metrics
+     * NOTE: Removed SystemResourceMetrics as it's already defined in
+     * ApplicationMetrics.java
+     * to prevent duplicate class compilation error
      */
-    @Bean
-    public MeterBinder systemResourceMetrics() {
-        return new SystemResourceMetrics();
-    }
 }
 
 /**

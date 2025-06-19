@@ -1,6 +1,8 @@
 package com.vivek.exception;
 
 import lombok.extern.slf4j.Slf4j;
+import lombok.Data;
+import lombok.Builder;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
@@ -324,8 +326,8 @@ public class GlobalExceptionHandler {
         /**
          * Standardized error response structure
          */
-        @lombok.Data
-        @lombok.Builder
+        @Data
+        @Builder
         public static class ErrorResponse {
                 private boolean success;
                 private String errorCode;

@@ -8,13 +8,14 @@ import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import lombok.extern.slf4j.Slf4j;
+import lombok.Data;
+import lombok.Builder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataAccessException;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,7 +24,6 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -107,96 +107,6 @@ public class PerformanceTestService {
                 .register(meterRegistry);
     }
 
-    /**
-     * Smart Insert with enhanced error handling and validation
-     */
-
-    // @Transactional(propagation = Propagation.REQUIRED, timeout = 300, rollbackFor
-    // = Exception.class)
-    // @Retryable(value = { DataAccessException.class }, maxAttempts = 3, backoff =
-    // @Backoff(delay = 1000, multiplier = 2))
-    // public PerformanceResult smartInsert(int totalRecords, int batchSize) {
-    // String operationId = UUID.randomUUID().toString();
-    // log.info("📝 [{}] Smart Insert started: {} records with batch size {}",
-    // operationId, totalRecords, batchSize);
-
-    // // Pre-operation validation
-    // validateInsertOperation(totalRecords, batchSize, operationId);
-
-    // // Check system resources
-    // checkSystemResources(operationId);
-
-    // // Track active operations
-    // activeOperations.incrementAndGet();
-    // totalOperationsCounter.increment();
-
-    // try {
-    // LocalDateTime startTime = LocalDateTime.now();
-    // long startMemory = getUsedMemory();
-
-    // Timer.Sample sample = Timer.start(meterRegistry);
-    // Timer timerToUse = batchSize == 1 ? singleInsertionTimer :
-    // batchInsertionTimer;
-
-    // int totalInserted = 0;
-    // int operationCount = 0;
-
-    // if (batchSize == 1) {
-    // totalInserted = performSingleInserts(totalRecords, operationId);
-    // operationCount = totalRecords;
-    // } else {
-    // var result = performBatchInserts(totalRecords, batchSize, operationId);
-    // totalInserted = result.inserted;
-    // operationCount = result.batches;
-    // }
-
-    // sample.stop(timerToUse);
-    // insertedRecordsCounter.increment(totalInserted);
-    // successfulOperationsCounter.increment();
-
-    // LocalDateTime endTime = LocalDateTime.now();
-    // long endMemory = getUsedMemory();
-    // Duration duration = Duration.between(startTime, endTime);
-
-    // PerformanceResult result = PerformanceResult.builder()
-    // .testType(batchSize == 1 ? "SINGLE_INSERTION" : "BATCH_INSERTION")
-    // .batchSize(batchSize)
-    // .recordsProcessed(totalInserted)
-    // .durationMs(duration.toMillis())
-    // .averageTimePerRecord((double) duration.toMillis() / totalInserted)
-    // .memoryUsedMB((endMemory - startMemory) / (1024 * 1024))
-    // .recordsPerSecond((double) totalInserted / (duration.toMillis() / 1000.0))
-    // .batchCount(operationCount)
-    // .startTime(startTime)
-    // .endTime(endTime)
-    // .operationId(operationId)
-    // .build();
-
-    // log.info("✅ [{}] Smart insert completed successfully: {} records in {} ms",
-    // operationId, totalInserted, duration.toMillis());
-
-    // return result;
-
-    // } catch (DataAccessException e) {
-    // failedOperationsCounter.increment();
-    // log.error("❌ [{}] Database error during smart insert", operationId, e);
-    // throw new DatabaseOperationException(
-    // "Failed to insert records due to database error: %s", e, e.getMessage());
-    // } catch (OutOfMemoryError e) {
-    // failedOperationsCounter.increment();
-    // log.error("❌ [{}] Out of memory during smart insert", operationId, e);
-    // throw new ResourceExhaustedException(
-    // "Insufficient memory to complete insert operation", e);
-    // } catch (Exception e) {
-    // failedOperationsCounter.increment();
-    // log.error("❌ [{}] Unexpected error during smart insert", operationId, e);
-    // throw new PerformanceOperationException(
-    // "Smart insert operation failed unexpectedly", e);
-    // } finally {
-    // activeOperations.decrementAndGet();
-    // }
-    // }
-
     @Transactional(propagation = Propagation.REQUIRES_NEW, timeout = 300)
     public PerformanceResult smartInsert(int totalRecords, int batchSize) {
         String operationId = UUID.randomUUID().toString();
@@ -275,14 +185,6 @@ public class PerformanceTestService {
         }
     }
 
-    /**
-     * Smart Delete with enhanced error handling and validation
-     */
-    // @Transactional(propagation = Propagation.REQUIRED, timeout = 600, rollbackFor
-    // = Exception.class)
-    // @Retryable(value = { DataAccessException.class }, maxAttempts = 3, backoff =
-    // @Backoff(delay = 1000, multiplier = 2))
-    // @Transactional(timeout = 900)
     public PerformanceResult smartDelete(int totalRecords, int batchSize) {
         String operationId = UUID.randomUUID().toString();
         log.info("🗑️ [{}] Smart Delete started: {} records with batch size {}",
@@ -338,14 +240,22 @@ public class PerformanceTestService {
             long endMemory = getUsedMemory();
             Duration duration = Duration.between(startTime, endTime);
 
+            double recordsPerSecond = totalDeleted > 0 && duration.toMillis() > 0
+                    ? (double) totalDeleted / (duration.toMillis() / 1000.0)
+                    : 0.0;
+
+            double avgTimePerRecord = totalDeleted > 0
+                    ? (double) duration.toMillis() / totalDeleted
+                    : 0.0;
+
             PerformanceResult result = PerformanceResult.builder()
                     .testType(batchSize == 1 ? "SINGLE_DELETION" : "BATCH_DELETION")
                     .batchSize(batchSize)
                     .recordsProcessed(totalDeleted)
                     .durationMs(duration.toMillis())
-                    .averageTimePerRecord((double) duration.toMillis() / totalDeleted)
+                    .averageTimePerRecord(avgTimePerRecord)
                     .memoryUsedMB((endMemory - startMemory) / (1024 * 1024))
-                    .recordsPerSecond((double) totalDeleted / (duration.toMillis() / 1000.0))
+                    .recordsPerSecond(recordsPerSecond)
                     .batchCount(operationCount)
                     .startTime(startTime)
                     .endTime(endTime)
@@ -608,8 +518,8 @@ public class PerformanceTestService {
     /**
      * Enhanced Performance Result Data Transfer Object
      */
-    @lombok.Data
-    @lombok.Builder
+    @Data
+    @Builder
     public static class PerformanceResult {
         private String testType;
         private int batchSize;
@@ -627,8 +537,8 @@ public class PerformanceTestService {
     /**
      * Enhanced Database Statistics Data Transfer Object
      */
-    @lombok.Data
-    @lombok.Builder
+    @Data
+    @Builder
     public static class DatabaseStats {
         private Long totalRecords;
         private String tableSize;
