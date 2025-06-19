@@ -7,16 +7,22 @@ services:
     container_name: performance-analyzer-app
     environment:
       # Use Docker profile
-      - SPRING_PROFILES_ACTIVE=docker
+      - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE}
       
       # Environment-specific overrides
-      - DB_PASSWORD=${DB_PASSWORD:-securepassword123!}
-      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin123!}
-      - VIEWER_PASSWORD=${VIEWER_PASSWORD:-viewer123!}
+      - DB_NAME=${DB_NAME}
+      - DB_USERNAME=${DB_USERNAME}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - ADMIN_USERNAME=${ADMIN_USERNAME}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+      - VIEWER_USERNAME=${VIEWER_USERNAME}
+      - VIEWER_PASSWORD=${VIEWER_PASSWORD}
       
       # Optional overrides
-      - PROMETHEUS_ENABLED=true
-      - LOG_LEVEL_APP=INFO
+      - PROMETHEUS_ENABLED=${PROMETHEUS_ENABLED}
+      - LOG_LEVEL_APP=${LOG_LEVEL_APP}
       
     ports:
       - "8080:8080"
