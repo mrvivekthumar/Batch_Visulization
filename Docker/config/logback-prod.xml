@@ -220,7 +220,4 @@
         </then>
     </if>
     
-    <!-- JMX Configuration for log level management -->
-    <jmxConfigurator/>
-    
 </configuration>

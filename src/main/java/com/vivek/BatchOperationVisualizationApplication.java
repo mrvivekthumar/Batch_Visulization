@@ -24,10 +24,7 @@ import lombok.extern.slf4j.Slf4j;
  * @since 2025-06-14
  */
 @Slf4j
-@SpringBootApplication(exclude = {
-		org.springframework.boot.autoconfigure.admin.SpringApplicationAdminJmxAutoConfiguration.class,
-		org.springframework.boot.autoconfigure.jmx.JmxAutoConfiguration.class
-})
+@SpringBootApplication
 @EnableConfigurationProperties
 @EnableCaching
 @EnableAsync
@@ -35,10 +32,6 @@ import lombok.extern.slf4j.Slf4j;
 public class BatchOperationVisualizationApplication {
 
 	public static void main(String[] args) {
-		// Completely disable JMX to avoid conflicts
-		System.setProperty("spring.jmx.enabled", "false");
-		System.setProperty("com.sun.management.jmxremote", "false");
-		System.setProperty("spring.application.admin.enabled", "false");
 
 		// Log system information
 		logSystemInfo();
@@ -56,7 +49,7 @@ public class BatchOperationVisualizationApplication {
 	 * Log system information at startup
 	 */
 	private static void logSystemInfo() {
-		log.info("🚀 Starting Database Batch Performance Analyzer (JMX-Free)...");
+		log.info("🚀 Starting Database Batch Performance Analyzer...");
 		log.info("📊 System Information:");
 		log.info("   Java Version: {}", System.getProperty("java.version"));
 		log.info("   OS: {} {}", System.getProperty("os.name"), System.getProperty("os.version"));
@@ -76,7 +69,7 @@ public class BatchOperationVisualizationApplication {
 		log.info("   Metrics: http://localhost:8080/actuator/metrics");
 		log.info("   Prometheus: http://localhost:8080/actuator/prometheus");
 		log.info("🔧 Management URLs:");
-		log.info("   Grafana: http://localhost:3000 (admin/admin)");
+		log.info("   Grafana: http://localhost:3000");
 		log.info("   Prometheus: http://localhost:9090");
 		log.info("💾 Database: PostgreSQL on localhost:5433");
 	}

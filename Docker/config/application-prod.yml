@@ -71,10 +71,6 @@ spring:
       password: ${SECURITY_DEFAULT_PASSWORD}
       roles: ADMIN
 
-  # JMX - Disabled for production
-  jmx:
-    enabled: false
-
 # Application Security Settings - Production
 app:
   security:

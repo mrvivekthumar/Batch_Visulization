@@ -1,0 +1,12 @@
+# Uses application.yml + application-dev.yml
+mvn spring-boot:run -Dspring-boot.run.profiles=dev
+
+
+cd Docker
+# Uses application.yml + application-docker.yml
+docker-compose up -d
+
+
+cd Docker
+# Uses application.yml + application-prod.yml
+docker-compose --env-file .env.prod -f docker-compose.prod.yml up -d

@@ -1,0 +1,72 @@
+spring:
+  # Production Database (with SSL)
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:postgres}:${DB_PORT:5432}/${DB_NAME:performance_db}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD}  # MUST be provided
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      pool-name: ProdPerformanceHikariCP
+      maximum-pool-size: 50
+      minimum-idle: 10
+      idle-timeout: 600000
+      connection-timeout: 30000
+      max-lifetime: 1800000
+      leak-detection-threshold: 60000
+      register-mbeans: false
+      connection-test-query: SELECT 1
+      validation-timeout: 5000
+      data-source-properties:
+        ssl: ${DB_SSL_ENABLED:true}
+        sslmode: ${DB_SSL_MODE:require}
+        applicationName: batch-performance-analyzer-prod
+        tcpKeepAlive: true
+
+  # Production JPA (safe)
+  jpa:
+    hibernate:
+      ddl-auto: validate  # NEVER modify schema in production
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+        generate_statistics: false
+
+# Production Security (strict)
+app:
+  security:
+    enabled: true
+  rate-limit:
+    enabled: true
+    requests-per-minute: 30  # Restrictive
+    burst-capacity: 10
+    performance-operations-per-hour: 20
+
+# Production Performance Limits (conservative)
+performance:
+  test:
+    total-records: 50000
+    max-records-per-operation: 50000
+    max-batch-size: 5000
+
+# Production Actuator (minimal access)
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "health,info,metrics,prometheus"
+  endpoint:
+    health:
+      show-details: when-authorized
+
+# Production Logging (minimal)
+logging:
+  level:
+    root: WARN
+    com.vivek: INFO
+    org.hibernate: WARN
+    org.springframework.security: WARN
+  file:
+    name: /app/logs/application.log
+    max-size: 100MB
+    max-history: 30

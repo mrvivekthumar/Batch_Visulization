@@ -1,0 +1,62 @@
+spring:
+  # Development Database
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5433}/${DB_NAME:performance_db}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      pool-name: DevPerformanceHikariCP
+      maximum-pool-size: 10
+      minimum-idle: 2
+      idle-timeout: 300000
+      connection-timeout: 20000
+      leak-detection-threshold: 60000
+      register-mbeans: false
+      connection-test-query: SELECT 1
+      validation-timeout: 3000
+
+  # Development JPA
+  jpa:
+    hibernate:
+      ddl-auto: create-drop  # OK for development
+    show-sql: ${SHOW_SQL:true}  # Show SQL in development
+    properties:
+      hibernate:
+        format_sql: true
+        generate_statistics: true
+
+# Development Rate Limiting (relaxed)
+app:
+  rate-limit:
+    enabled: false  # Disabled for development
+    requests-per-minute: 1000
+    burst-capacity: 100
+    performance-operations-per-hour: 1000
+
+# Development Performance Limits
+performance:
+  test:
+    total-records: 1000
+    max-records-per-operation: 10000
+    max-batch-size: 1000
+
+# Development Actuator (open)
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"  # All endpoints for debugging
+  endpoint:
+    health:
+      show-details: always
+
+# Development Logging (verbose)
+logging:
+  level:
+    com.vivek: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.orm.jdbc.bind: TRACE
+    org.springframework.security: DEBUG
+  file:
+    name: logs/dev-application.log
