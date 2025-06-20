@@ -10,3 +10,13 @@ docker-compose up -d
 cd Docker
 # Uses application.yml + application-prod.yml
 docker-compose --env-file .env.prod -f docker-compose.prod.yml up -d
+
+
+
+
+# Uses .env.prod file and docker-compose.prod.yml
+cd Docker
+docker-compose --env-file .env.prod -f docker-compose.prod.yml up -d
+
+# To see logs:
+docker-compose --env-file .env.prod -f docker-compose.prod.yml logs -f app

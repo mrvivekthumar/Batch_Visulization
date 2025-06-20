@@ -33,16 +33,24 @@ export interface TestConfig {
 }
 
 export interface PerformanceResult {
-    operationType: 'INSERT' | 'DELETE';
+    operationType: "INSERT" | "DELETE" | "BATCH_INSERT" | "BATCH_DELETE" | "UPDATE" | "SELECT" | string;
     recordsProcessed: number;
     batchSize: number;
     durationMs: number;
     throughputRecordsPerSecond: number;
     avgTimePerBatch: number;
+    memoryUsage?: number;
+    totalRecords?: number;
+    duration?: number;
+    recordsPerSecond?: number;
     avgTimePerRecord: number;
     totalBatches: number;
     memoryUsedMB: number;
     cpuUsagePercent: number;
+    metadata?: any;
+    testType?: string;
+    cpuUsage?: number;
+    averageTimePerRecord?: number;
     timestamp: string;
     testId: string;
     status: 'SUCCESS' | 'FAILED' | 'PARTIAL';
@@ -172,6 +180,7 @@ export interface ApiError {
     };
     request?: any;
     message: string;
+    code?: string
 }
 
 // ===== Constants =====

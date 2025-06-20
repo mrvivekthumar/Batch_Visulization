@@ -23,7 +23,12 @@ spring:
     properties:
       hibernate:
         format_sql: false
-        generate_statistics: true
+        generate_statistics: false
+        # Add these to suppress session event logging
+        session:
+          events:
+            log:
+              LOG_QUERIES_SLOWER_THAN_MS: -1
 
 # Docker Rate Limiting (moderate)
 app:

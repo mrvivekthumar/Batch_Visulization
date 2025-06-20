@@ -22,7 +22,7 @@ const AppContent: React.FC = () => {
     );
   }
 
-  return <Dashboard user={state.user!} onLogout={logout} />;
+  return <Dashboard />;
 };
 
 const App: React.FC = () => {
