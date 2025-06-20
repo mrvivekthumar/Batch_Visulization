@@ -1,10 +1,38 @@
-﻿# ================================
+# ================================
+# Windows Repository Security Cleanup Script
+# ================================
+
+Write-Host "🔐 Starting repository security cleanup..." -ForegroundColor Green
+
+# Step 1: Remove sensitive files from git history and current tracking
+Write-Host "📝 Removing sensitive files from git..." -ForegroundColor Yellow
+
+# Remove files from current index (but keep local copies)
+git rm --cached .env 2>$null
+if ($LASTEXITCODE -ne 0) { Write-Host "No .env in index" -ForegroundColor Gray }
+
+git rm --cached .env.* 2>$null
+if ($LASTEXITCODE -ne 0) { Write-Host "No .env.* files in index" -ForegroundColor Gray }
+
+git rm --cached Docker/.env 2>$null
+if ($LASTEXITCODE -ne 0) { Write-Host "No Docker/.env in index" -ForegroundColor Gray }
+
+git rm --cached Docker/.env.* 2>$null
+if ($LASTEXITCODE -ne 0) { Write-Host "No Docker/.env.* files in index" -ForegroundColor Gray }
+
+git rm --cached Docker/config/application-prod.yml 2>$null
+if ($LASTEXITCODE -ne 0) { Write-Host "No application-prod.yml in index" -ForegroundColor Gray }
+
+# Step 2: Create .gitignore if it doesn't exist or update it
+Write-Host "📄 Creating/updating .gitignore..." -ForegroundColor Yellow
+
+$gitignoreContent = @"
+# ================================
 # Security & Environment Files
 # ================================
 .env
 .env.*
 !.env.template
-!.env.prod.template
 !.env.example
 
 # Application configuration with secrets
@@ -19,7 +47,6 @@ application-local.yml
 Docker/.env
 Docker/.env.*
 !Docker/.env.template
-!Docker/.env.prod.template
 !Docker/.env.example
 
 # Database credentials
@@ -149,7 +176,7 @@ secrets.yml
 Thumbs.db
 ehthumbs.db
 Desktop.ini
-$RECYCLE.BIN/
+`$RECYCLE.BIN/
 *.lnk
 
 # macOS
@@ -199,3 +226,12 @@ ApplicationInsights.json
 
 # New Relic
 newrelic.yml
+"@
+
+Set-Content -Path ".gitignore" -Value $gitignoreContent -Encoding UTF8
+
+Write-Host "✅ .gitignore created/updated" -ForegroundColor Green
+
+Write-Host ""
+Write-Host "🎉 Step 1 completed!" -ForegroundColor Green
+Write-Host "Please type 'done' to continue to step 2..." -ForegroundColor Cyan
