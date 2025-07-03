@@ -14,56 +14,52 @@
 
 📸 Application Showcase
 🎯 Main Dashboard
-<div align="center">
-  <img src="docs/images/dashboard/Dashboard-1.png" alt="Main Dashboard Overview" width="45%" style="margin: 10px;"/>
-  <img src="docs/images/dashboard/Dashboard-2.png" alt="Performance Metrics" width="45%" style="margin: 10px;"/>
+<div style="display: flex; width: 100%; justify-content: space-between; align-items: center; gap: 16px;">
+  <img src="docs/images/dashboard/Dashboard-1.png" alt="Main Dashboard Overview" style="flex: 1; height: 300px; object-fit: contain;"/>
+  <img src="docs/images/dashboard/Dashboard-2.png" alt="Performance Metrics" style="flex: 1; height: 300px; object-fit: contain;"/>
+  <img src="docs/images/dashboard/Dashboard-3.png" alt="Options" style="flex: 1; height: 300px; object-fit: contain;"/>
 </div>
 <div align="center">
   <p><em>Interactive dashboard with real-time performance analytics and comprehensive metrics visualization</em></p>
 </div>
 
-
 📊 Advanced Analytics
-<div align="center">
-  <img src="docs/images/dashboard/Dashboard-3.png" alt="Analytics Charts" width="45%" style="margin: 10px;"/>
-  <img src="docs/images/dashboard/Dashboard-4.png" alt="System Monitoring" width="45%" style="margin: 10px;"/>
+<div style="display: flex; width: 100%; justify-content: space-between; align-items: center; gap: 16px;">
+  <img src="docs/images/dashboard/Dashboard-4.png" alt="System Monitoring" style="flex: 1; height: 300px; object-fit: contain;"/>
+  <img src="docs/images/dashboard/Dashboard-5.png" alt="System Monitoring" style="flex: 1; height: 300px; object-fit: contain;"/>
+  <img src="docs/images/dashboard/Dashboard-6.png" alt="System Monitoring" style="flex: 1; height: 300px; object-fit: contain;"/>
 </div>
 <div align="center">
   <p><em>Detailed performance charts showing batch vs single operation comparisons and resource utilization</em></p>
 </div>
 
-
 🔌 API Integration
-<div align="center">
-  <img src="docs/images/api/Api-1.png" alt="API Endpoints" width="30%" style="margin: 5px;"/>
-  <img src="docs/images/api/Api-2.png" alt="API Testing" width="30%" style="margin: 5px;"/>
-  <img src="docs/images/api/Api-3.png" alt="API Responses" width="30%" style="margin: 5px;"/>
-</div>
-<div align="center">
-  <img src="docs/images/api/Api-4.png" alt="API Documentation" width="45%" style="margin: 10px;"/>
-  <img src="docs/images/api/Api-5.png" alt="API Security" width="45%" style="margin: 10px;"/>
+<div style="display: flex; width: 100%; justify-content: space-between; align-items: center; gap: 16px;">
+  <img src="docs/images/api/Api-1.png" alt="API Endpoints" style="flex: 1; height: 300px; object-fit: contain;"/>
+  <img src="docs/images/api/Api-2.png" alt="API Testing" style="flex: 1; height: 300px; object-fit: contain;"/>
+  <img src="docs/images/api/Api-3.png" alt="API Documentation" style="flex: 1; height: 300px; object-fit: contain;"/>
 </div>
 <div align="center">
   <p><em>RESTful API endpoints with comprehensive testing capabilities and security features</em></p>
 </div>
 
 📈 Production Monitoring
-<div align="center">
-  <img src="docs/images/monitoring/Monitoring-1.png" alt="Prometheus Metrics" width="45%" style="margin: 10px;"/>
-  <img src="docs/images/monitoring/Monitoring-2.png" alt="Grafana Dashboard" width="45%" style="margin: 10px;"/>
+<div style="display: flex; width: 100%; justify-content: space-between; align-items: center; gap: 16px;">
+  <img src="docs/images/monitoring/Monitoring-1.png" alt="Prometheus Metrics" style="flex: 1; height: 300px; object-fit: contain;"/>
+  <img src="docs/images/monitoring/Monitoring-2.png" alt="Grafana Dashboard" style="flex: 1; height: 300px; object-fit: contain;"/>
 </div>
-<div align="center">
-  <img src="docs/images/monitoring/Monitoring-3.png" alt="System Health" width="30%" style="margin: 5px;"/>
-  <img src="docs/images/monitoring/Monitoring-4.png" alt="Performance Alerts" width="30%" style="margin: 5px;"/>
-  <img src="docs/images/monitoring/Monitoring-5.png" alt="Resource Usage" width="30%" style="margin: 5px;"/>
+<div style="display: flex; width: 100%; justify-content: space-between; align-items: center; gap: 16px; margin-top: 16px;">
+  <img src="docs/images/monitoring/Monitoring-3.png" alt="System Health" style="flex: 1; height: 300px; object-fit: contain;"/>
+  <img src="docs/images/monitoring/Monitoring-4.png" alt="Performance Alerts" style="flex: 1; height: 300px; object-fit: contain;"/>
+  <img src="docs/images/monitoring/Monitoring-5.png" alt="Resource Usage" style="flex: 1; height: 300px; object-fit: contain;"/>
 </div>
 <div align="center">
   <p><em>Enterprise-grade monitoring with Prometheus metrics collection and Grafana visualization dashboards</em></p>
 </div>
 
 ⚡ Performance Benchmarks
-<div align="center">
-  <img src="docs/images/performance/Performance.png" alt="Performance Analysis" width="70%" style="margin: 20px;"/>
+<div style="display: flex; width: 100%; justify-content: center; align-items: center; gap: 16px;">
+  <img src="docs/images/performance/Performance.png" alt="Performance Analysis" style="flex: 1; height: 300px; object-fit: contain; max-width: 100%;"/>
 </div>
 <div align="center">
   <p><em>Comprehensive performance analysis showing throughput improvements with optimized batch operations</em></p>
