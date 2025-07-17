@@ -1,5 +1,7 @@
 package com.vivek.service;
 
+import com.vivek.dto.DatabaseStats;
+import com.vivek.dto.PerformanceResult;
 import com.vivek.exception.*;
 import com.vivek.model.PerformanceTestRecord;
 import com.vivek.repository.PerformanceTestRepository;
@@ -8,8 +10,6 @@ import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import lombok.extern.slf4j.Slf4j;
-import lombok.Data;
-import lombok.Builder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataAccessException;
@@ -26,13 +26,6 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
-/**
- * Enhanced Performance Test Service with comprehensive error handling,
- * retry mechanisms, and production-grade service management
- * 
- * @author Vivek
- * @version 2.0.0
- */
 @Slf4j
 @Service
 public class PerformanceTestService {
@@ -113,11 +106,9 @@ public class PerformanceTestService {
         log.info("📝 [{}] Smart Insert started: {} records with batch size {}",
                 operationId, totalRecords, batchSize);
 
-        // Pre-operation validation
         validateInsertOperation(totalRecords, batchSize, operationId);
         checkSystemResources(operationId);
 
-        // Track active operations
         activeOperations.incrementAndGet();
         totalOperationsCounter.increment();
 
@@ -128,8 +119,8 @@ public class PerformanceTestService {
             Timer.Sample sample = Timer.start(meterRegistry);
             Timer timerToUse = batchSize == 1 ? singleInsertionTimer : batchInsertionTimer;
 
-            int totalInserted = 0;
-            int operationCount = 0;
+            int totalInserted;
+            int operationCount;
 
             if (batchSize == 1) {
                 totalInserted = performSingleInserts(totalRecords, operationId);
@@ -148,7 +139,6 @@ public class PerformanceTestService {
             long endMemory = getUsedMemory();
             Duration duration = Duration.between(startTime, endTime);
 
-            // FIXED: Calculate proper metrics
             double recordsPerSecond = totalInserted > 0 && duration.toMillis() > 0
                     ? (double) totalInserted / (duration.toMillis() / 1000.0)
                     : 0.0;
@@ -157,7 +147,7 @@ public class PerformanceTestService {
                     ? (double) duration.toMillis() / totalInserted
                     : 0.0;
 
-            PerformanceResult result = PerformanceResult.builder()
+            return PerformanceResult.builder()
                     .testType(batchSize == 1 ? "SINGLE_INSERTION" : "BATCH_INSERTION")
                     .batchSize(batchSize)
                     .recordsProcessed(totalInserted)
@@ -170,12 +160,6 @@ public class PerformanceTestService {
                     .endTime(endTime)
                     .operationId(operationId)
                     .build();
-
-            log.info("✅ [{}] Smart insert completed: {} records in {} ms",
-                    operationId, totalInserted, duration.toMillis());
-
-            return result;
-
         } catch (Exception e) {
             failedOperationsCounter.increment();
             log.error("❌ [{}] Smart insert failed", operationId, e);
@@ -190,10 +174,8 @@ public class PerformanceTestService {
         log.info("🗑️ [{}] Smart Delete started: {} records with batch size {}",
                 operationId, totalRecords, batchSize);
 
-        // Pre-operation validation
         validateDeleteOperation(totalRecords, batchSize, operationId);
 
-        // Check available records
         Long availableRecords = repository.getTotalRecordCount();
         if (availableRecords < totalRecords) {
             totalRecords = availableRecords.intValue();
@@ -202,11 +184,9 @@ public class PerformanceTestService {
         }
 
         if (totalRecords == 0) {
-            throw new InsufficientResourcesException(
-                    "No records available for deletion");
+            throw new InsufficientResourcesException("No records available for deletion");
         }
 
-        // Track active operations
         activeOperations.incrementAndGet();
         totalOperationsCounter.increment();
 
@@ -217,11 +197,9 @@ public class PerformanceTestService {
             Timer.Sample sample = Timer.start(meterRegistry);
             Timer timerToUse = batchSize == 1 ? singleDeletionTimer : batchDeletionTimer;
 
-            // Get IDs to delete in chunks to manage memory
             List<Long> idsToDelete = getIdsForDeletion(totalRecords, operationId);
-
-            int totalDeleted = 0;
-            int operationCount = 0;
+            int totalDeleted;
+            int operationCount;
 
             if (batchSize == 1) {
                 totalDeleted = performSingleDeletes(idsToDelete, operationId);
@@ -248,7 +226,7 @@ public class PerformanceTestService {
                     ? (double) duration.toMillis() / totalDeleted
                     : 0.0;
 
-            PerformanceResult result = PerformanceResult.builder()
+            return PerformanceResult.builder()
                     .testType(batchSize == 1 ? "SINGLE_DELETION" : "BATCH_DELETION")
                     .batchSize(batchSize)
                     .recordsProcessed(totalDeleted)
@@ -261,30 +239,20 @@ public class PerformanceTestService {
                     .endTime(endTime)
                     .operationId(operationId)
                     .build();
-
-            log.info("✅ [{}] Smart delete completed successfully: {} records in {} ms",
-                    operationId, totalDeleted, duration.toMillis());
-
-            return result;
-
         } catch (DataAccessException e) {
             failedOperationsCounter.increment();
             log.error("❌ [{}] Database error during smart delete", operationId, e);
-            throw new DatabaseOperationException(
-                    "Failed to delete records due to database error: %s", e, e.getMessage());
+            throw new DatabaseOperationException("Failed to delete records due to database error: %s", e,
+                    e.getMessage());
         } catch (Exception e) {
             failedOperationsCounter.increment();
             log.error("❌ [{}] Unexpected error during smart delete", operationId, e);
-            throw new PerformanceOperationException(
-                    "Smart delete operation failed unexpectedly", e);
+            throw new PerformanceOperationException("Smart delete operation failed unexpectedly", e);
         } finally {
             activeOperations.decrementAndGet();
         }
     }
 
-    /**
-     * Get enhanced database statistics with error handling
-     */
     @Retryable(value = { DataAccessException.class }, maxAttempts = 3, backoff = @Backoff(delay = 500))
     public DatabaseStats getDatabaseStats() {
         try {
@@ -312,105 +280,37 @@ public class PerformanceTestService {
                     .timestamp(LocalDateTime.now())
                     .activeOperations(activeOperations.get())
                     .build();
-
         } catch (DataAccessException e) {
             log.error("Failed to retrieve database statistics", e);
-            throw new DatabaseOperationException(
-                    "Unable to retrieve database statistics", e);
+            throw new DatabaseOperationException("Unable to retrieve database statistics", e);
         }
     }
 
-    // ===== PRIVATE HELPER METHODS =====
-
     private void validateInsertOperation(int totalRecords, int batchSize, String operationId) {
-        if (totalRecords <= 0) {
-            throw new ValidationException("Total records must be positive, got: %d", totalRecords);
+        if (totalRecords <= 0 || batchSize <= 0 || totalRecords > maxRecordsPerOperation || batchSize > maxBatchSize
+                || batchSize > totalRecords) {
+            throw new ValidationException("Invalid arguments for insert operation");
         }
-        if (totalRecords > maxRecordsPerOperation) {
-            throw new ValidationException(
-                    "Total records (%d) exceeds maximum allowed (%d)",
-                    totalRecords, maxRecordsPerOperation);
-        }
-        if (batchSize <= 0) {
-            throw new ValidationException("Batch size must be positive, got: %d", batchSize);
-        }
-        if (batchSize > maxBatchSize) {
-            throw new ValidationException(
-                    "Batch size (%d) exceeds maximum allowed (%d)",
-                    batchSize, maxBatchSize);
-        }
-        if (batchSize > totalRecords) {
-            throw new ValidationException(
-                    "Batch size (%d) cannot be greater than total records (%d)",
-                    batchSize, totalRecords);
-        }
-
-        log.debug("✅ [{}] Insert operation validation passed", operationId);
     }
 
     private void validateDeleteOperation(int totalRecords, int batchSize, String operationId) {
-        if (totalRecords <= 0) {
-            throw new ValidationException("Total records must be positive, got: %d", totalRecords);
+        if (totalRecords <= 0 || batchSize <= 0 || totalRecords > maxRecordsPerOperation || batchSize > maxBatchSize) {
+            throw new ValidationException("Invalid arguments for delete operation");
         }
-        if (totalRecords > maxRecordsPerOperation) {
-            throw new ValidationException(
-                    "Total records (%d) exceeds maximum allowed (%d)",
-                    totalRecords, maxRecordsPerOperation);
-        }
-        if (batchSize <= 0) {
-            throw new ValidationException("Batch size must be positive, got: %d", batchSize);
-        }
-        if (batchSize > maxBatchSize) {
-            throw new ValidationException(
-                    "Batch size (%d) exceeds maximum allowed (%d)",
-                    batchSize, maxBatchSize);
-        }
-
-        log.debug("✅ [{}] Delete operation validation passed", operationId);
     }
 
     private void checkSystemResources(String operationId) {
         Runtime runtime = Runtime.getRuntime();
-        long usedMemoryMb = (runtime.totalMemory() - runtime.freeMemory()) / (1024 * 1024);
-        long maxMemoryMb = runtime.maxMemory() / (1024 * 1024);
-        double memoryUsagePercent = (double) usedMemoryMb / maxMemoryMb * 100;
-
-        if (memoryUsagePercent > 90) {
-            throw new ResourceExhaustedException(
-                    "System memory usage too high: %.1f%% (used: %dMB, max: %dMB)",
-                    memoryUsagePercent, usedMemoryMb, maxMemoryMb);
+        if (((double) (runtime.totalMemory() - runtime.freeMemory()) / runtime.maxMemory()) > 0.9) {
+            throw new ResourceExhaustedException("High memory usage");
         }
-
-        if (activeOperations.get() > 5) {
-            throw new ResourceExhaustedException(
-                    "Too many active operations: %d. Please wait for current operations to complete.",
-                    activeOperations.get());
-        }
-
-        log.debug("✅ [{}] System resource check passed: Memory: %.1f%%, Active ops: {}",
-                operationId, memoryUsagePercent, activeOperations.get());
     }
 
     private int performSingleInserts(int totalRecords, String operationId) {
         int inserted = 0;
         for (int i = 0; i < totalRecords; i++) {
-            try {
-                PerformanceTestRecord record = PerformanceTestRecord.createTestRecord(i);
-
-                // Use JPA save() instead of native SQL query
-                PerformanceTestRecord savedRecord = repository.save(record);
-
-                if (savedRecord != null && savedRecord.getId() != null) {
-                    inserted++;
-                }
-
-                if (i % 1000 == 0 && i > 0) {
-                    log.debug("📝 [{}] Inserted {} records (single)", operationId, i);
-                }
-            } catch (Exception e) {
-                log.warn("⚠️ [{}] Failed to insert record {}: {}", operationId, i, e.getMessage());
-                // Continue with next record
-            }
+            repository.save(PerformanceTestRecord.createTestRecord(i));
+            inserted++;
         }
         return inserted;
     }
@@ -418,60 +318,25 @@ public class PerformanceTestService {
     private BatchInsertResult performBatchInserts(int totalRecords, int batchSize, String operationId) {
         int totalInserted = 0;
         int batchCount = 0;
-
         for (int i = 0; i < totalRecords; i += batchSize) {
             List<PerformanceTestRecord> batch = new ArrayList<>();
-            int endIndex = Math.min(i + batchSize, totalRecords);
-
-            for (int j = i; j < endIndex; j++) {
+            for (int j = i; j < i + batchSize && j < totalRecords; j++) {
                 batch.add(PerformanceTestRecord.createTestRecord(j));
             }
-
-            try {
-                // Use JPA saveAll() instead of custom batchSave()
-                List<PerformanceTestRecord> savedRecords = repository.saveAll(batch);
-                totalInserted += savedRecords.size();
-                batchCount++;
-
-                if (batchCount % 10 == 0) {
-                    log.debug("📝 [{}] Completed {} batches, {} records",
-                            operationId, batchCount, totalInserted);
-                }
-            } catch (Exception e) {
-                log.warn("⚠️ [{}] Failed to insert batch {}: {}",
-                        operationId, batchCount, e.getMessage());
-            }
+            totalInserted += repository.saveAll(batch).size();
+            batchCount++;
         }
-
         return new BatchInsertResult(totalInserted, batchCount);
     }
 
     private List<Long> getIdsForDeletion(int totalRecords, String operationId) {
-        try {
-            // Get IDs in chunks to manage memory
-            return repository.findIdsPaginated(totalRecords, 0);
-        } catch (Exception e) {
-            log.error("❌ [{}] Failed to retrieve IDs for deletion", operationId, e);
-            throw new DatabaseOperationException(
-                    "Failed to retrieve record IDs for deletion", e);
-        }
+        return repository.findIdsPaginated(totalRecords, 0);
     }
 
     private int performSingleDeletes(List<Long> idsToDelete, String operationId) {
         int deleted = 0;
-        for (int i = 0; i < idsToDelete.size(); i++) {
-            try {
-                int result = repository.deleteRecordById(idsToDelete.get(i));
-                deleted += result;
-
-                if (i % 1000 == 0 && i > 0) {
-                    log.debug("🗑️ [{}] Deleted {} records (single)", operationId, i);
-                }
-            } catch (Exception e) {
-                log.warn("⚠️ [{}] Failed to delete record {}: {}",
-                        operationId, idsToDelete.get(i), e.getMessage());
-                // Continue with next record
-            }
+        for (Long id : idsToDelete) {
+            deleted += repository.deleteRecordById(id);
         }
         return deleted;
     }
@@ -479,71 +344,21 @@ public class PerformanceTestService {
     private BatchDeleteResult performBatchDeletes(List<Long> idsToDelete, int batchSize, String operationId) {
         int totalDeleted = 0;
         int batchCount = 0;
-
         for (int i = 0; i < idsToDelete.size(); i += batchSize) {
-            int endIndex = Math.min(i + batchSize, idsToDelete.size());
-            List<Long> batchIds = idsToDelete.subList(i, endIndex);
-
-            try {
-                int deletedInBatch = repository.batchDeleteByIds(batchIds);
-                totalDeleted += deletedInBatch;
-                batchCount++;
-
-                if (batchCount % 10 == 0) {
-                    log.debug("🗑️ [{}] Deleted {} batches, {} total records",
-                            operationId, batchCount, totalDeleted);
-                }
-            } catch (Exception e) {
-                log.warn("⚠️ [{}] Failed to delete batch {}: {}", operationId, batchCount, e.getMessage());
-                // Continue with next batch
-            }
+            List<Long> batchIds = idsToDelete.subList(i, Math.min(i + batchSize, idsToDelete.size()));
+            totalDeleted += repository.batchDeleteByIds(batchIds);
+            batchCount++;
         }
-
         return new BatchDeleteResult(totalDeleted, batchCount);
     }
 
     private long getUsedMemory() {
-        Runtime runtime = Runtime.getRuntime();
-        return runtime.totalMemory() - runtime.freeMemory();
+        return Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
     }
-
-    // ===== HELPER CLASSES =====
 
     private record BatchInsertResult(int inserted, int batches) {
     }
 
     private record BatchDeleteResult(int deleted, int batches) {
-    }
-
-    /**
-     * Enhanced Performance Result Data Transfer Object
-     */
-    @Data
-    @Builder
-    public static class PerformanceResult {
-        private String testType;
-        private int batchSize;
-        private int recordsProcessed;
-        private long durationMs;
-        private double averageTimePerRecord;
-        private long memoryUsedMB;
-        private double recordsPerSecond;
-        private int batchCount;
-        private LocalDateTime startTime;
-        private LocalDateTime endTime;
-        private String operationId;
-    }
-
-    /**
-     * Enhanced Database Statistics Data Transfer Object
-     */
-    @Data
-    @Builder
-    public static class DatabaseStats {
-        private Long totalRecords;
-        private String tableSize;
-        private String connectionInfo;
-        private LocalDateTime timestamp;
-        private int activeOperations;
     }
 }
